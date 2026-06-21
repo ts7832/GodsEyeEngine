@@ -150,7 +150,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif path == '/api/trigger_scrape':
             try:
                 project_root = os.path.abspath(os.path.join(DIRECTORY, '..'))
-                subprocess.Popen(["./run_all.sh"], cwd=project_root)
+                subprocess.Popen(["bash", "run_all.sh"], cwd=project_root)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -229,8 +229,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
             return
 
+import threading
+
+def auto_scraper():
+    project_root = os.path.abspath(os.path.join(DIRECTORY, '..'))
+    while True:
+        try:
+            # Sleep for 6 hours (21600 seconds)
+            time.sleep(21600)
+            logging.info("Initiating automatic 6-hour scrape...")
+            subprocess.Popen(["bash", "run_all.sh"], cwd=project_root)
+        except Exception as e:
+            logging.error(f"Auto scraper error: {e}")
+
 def run():
     socketserver.TCPServer.allow_reuse_address = True
+    
+    # Start auto-scraper in the background
+    scraper_thread = threading.Thread(target=auto_scraper, daemon=True)
+    scraper_thread.start()
+    
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
         logging.info(f"Serving API and static files at http://localhost:{PORT}")
         httpd.serve_forever()
