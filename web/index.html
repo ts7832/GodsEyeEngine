@@ -262,7 +262,7 @@
                                 `classDef strengthened fill:#064e3b,stroke:#34d399,color:#fff;\n` +
                                 `classDef weakened fill:#7f1d1d,stroke:#f87171,color:#fff;\n` +
                                 `classDef signal fill:#3f2a14,stroke:#f59e0b,color:#fff;\n` +
-                                `classDef joint fill:transparent,stroke:none,color:transparent;\n` +
+                                `classDef joint fill:#38bdf8,stroke:none,color:transparent;\n` +
                                 `linkStyle default stroke:#38bdf8,stroke-width:2px;\n`;
 
                 let signalsGraph = `graph TD\n${styleDefs}`;
@@ -279,6 +279,10 @@
 
                 let assumpGraph = `graph TD\n${styleDefs}`;
                 assumpGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
+                if (assumptions.length > 0) {
+                    assumpGraph += `J_A${thesisId}((" ")):::joint\n`;
+                    assumpGraph += `J_A${thesisId} --- T${thesisId}\n`;
+                }
                 assumptions.forEach(a => {
                     let text = a.description.replace(/"/g, "'").replace(/\n/g, ' ');
                     let shortText = text.split(' ').slice(0, 5).join(' ') + '...';
@@ -289,7 +293,7 @@
                     window.nodeTextMap[displayLabel] = text;
                     let nodeId = `A${a.id}`;
                     assumpGraph += `${nodeId}["${displayLabel}"]:::${statusClass}\n`;
-                    assumpGraph += `${nodeId} --- T${thesisId}\n`;
+                    assumpGraph += `${nodeId} --- J_A${thesisId}\n`;
                 });
 
                 const container = document.createElement('div');
@@ -308,6 +312,42 @@
                 setTimeout(() => {
                     mermaid.init(undefined, document.getElementById(`mer-sig-${thesisId}`));
                     mermaid.init(undefined, document.getElementById(`mer-assump-${thesisId}`));
+                    
+                    // Secretly stitch SVG lines to completely hide the junction circle but keep the perfect merge
+                    setTimeout(() => {
+                        document.querySelectorAll('.mermaid').forEach(svgContainer => {
+                            svgContainer.querySelectorAll('.node.joint').forEach(joint => {
+                                const match = (joint.getAttribute('transform') || '').match(/translate\(([^,]+),\s*([^)]+)\)/);
+                                if(!match) return;
+                                const cx = parseFloat(match[1]), cy = parseFloat(match[2]);
+                                joint.style.display = 'none'; // hide circle completely
+                                
+                                svgContainer.querySelectorAll('.edgePath path').forEach(path => {
+                                    let parts = path.getAttribute('d').trim().split(/(?=[MLC])/);
+                                    
+                                    // Fix start point
+                                    let startMatch = parts[0].match(/M\s*([\d.-]+)[,\s]+([\d.-]+)/);
+                                    if(startMatch && Math.abs(parseFloat(startMatch[1]) - cx) < 25 && Math.abs(parseFloat(startMatch[2]) - cy) < 25) {
+                                        parts[0] = `M ${cx} ${cy} `;
+                                    }
+                                    
+                                    // Fix end point
+                                    let endPart = parts[parts.length - 1];
+                                    let endMatch = endPart.match(/([MLC])\s*(.*)$/);
+                                    if(endMatch) {
+                                        let nums = endPart.match(/-?\d+(?:\.\d+)?/g);
+                                        if(nums && nums.length >= 2) {
+                                            if(Math.abs(parseFloat(nums[nums.length-2]) - cx) < 25 && Math.abs(parseFloat(nums[nums.length-1]) - cy) < 25) {
+                                                nums[nums.length-2] = cx; nums[nums.length-1] = cy;
+                                                parts[parts.length - 1] = endMatch[1] + " " + nums.join(" ");
+                                            }
+                                        }
+                                    }
+                                    path.setAttribute('d', parts.join(''));
+                                });
+                            });
+                        });
+                    }, 50);
                 }, 100);
 
             } catch(e) {
