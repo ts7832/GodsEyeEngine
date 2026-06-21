@@ -193,15 +193,23 @@ class GodsEyeAnalyst:
                 print(f"LLM API Error: {e}")
                 
         # Simulated Fallback
+        impact_id = None
+        if tracked_theses:
+            impact_id = tracked_theses[0]['id']
+            
+        long_assumption = "Market sentiment continues to aggressively over-value growth equities despite tightening macroeconomic conditions and rising capital costs. Retail trading volumes have surged to unprecendented highs, creating a reflexive loop where price action dictates fundamental narratives rather than the inverse. This creates a highly fragile structural environment where any liquidity shock could trigger a cascading sell-off, particularly in tech names with massive P/E multiples that require flawless execution to justify their current valuations. The underlying moat remains strong, but the current premium leaves zero margin for error."
+        
+        import random
+        
         simulated_data = {
-            "impacted_thesis_id": None,
+            "impacted_thesis_id": impact_id,
             "title": "Tech Bubble Momentum Short",
             "thesis": "The company shows strong free cash flow and a wide moat, but the stock is currently highly overvalued and crowded by momentum traders.",
             "target_instrument": "UNKNOWN",
             "position_type": "SHORT",
-            "alpha_score": 70,
+            "alpha_score": random.randint(45, 95),
             "assumptions": [
-                {"description": "Market sentiment continues to over-value growth", "status": "NEUTRAL"},
+                {"description": long_assumption, "status": "WEAKENED"},
                 {"description": "Macro environment remains favorable to Tech", "status": "NEUTRAL"},
                 {"description": "No major regulatory crackdowns occur", "status": "NEUTRAL"}
             ],

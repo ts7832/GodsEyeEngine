@@ -146,8 +146,8 @@
         let thesesData = [];
         window.nodeTextMap = {};
 
-        function showNodeDetails(nodeId) {
-            const fullText = window.nodeTextMap[nodeId] || "No details available.";
+        function showNodeDetails(nodeIdOrText, isRawText = false) {
+            const fullText = isRawText ? nodeIdOrText : (window.nodeTextMap[nodeIdOrText] || "No details available.");
             const panel = document.getElementById('details-panel');
             panel.innerText = fullText;
             panel.style.display = 'block';
@@ -274,11 +274,11 @@
                 signals.forEach(s => {
                     let text = s.content.replace(/"/g, "'").replace(/\n/g, ' ');
                     let shortText = text.split(' ').slice(0, 5).join(' ') + '...';
+                    let displayLabel = `[SIGNAL] ${shortText}`;
+                    window.nodeTextMap[displayLabel] = text;
                     let nodeId = `S${s.id}`;
-                    window.nodeTextMap[nodeId] = text;
-                    signalsGraph += `${nodeId}["[SIGNAL] ${shortText}"]:::signal\n`;
+                    signalsGraph += `${nodeId}["${displayLabel}"]:::signal\n`;
                     signalsGraph += `${nodeId} --- J_S${thesisId}\n`;
-                    signalsGraph += `click ${nodeId} call showNodeDetails()\n`;
                 });
 
                 let assumpGraph = `graph TD\n${styleDefs}`;
@@ -293,11 +293,11 @@
                     let statusClass = "neutral";
                     if(a.status === 'STRENGTHENED') statusClass = "strengthened";
                     if(a.status === 'WEAKENED') statusClass = "weakened";
+                    let displayLabel = `[${a.status}] ${shortText}`;
+                    window.nodeTextMap[displayLabel] = text;
                     let nodeId = `A${a.id}`;
-                    window.nodeTextMap[nodeId] = text;
-                    assumpGraph += `${nodeId}["[${a.status}] ${shortText}"]:::${statusClass}\n`;
+                    assumpGraph += `${nodeId}["${displayLabel}"]:::${statusClass}\n`;
                     assumpGraph += `${nodeId} --- J_A${thesisId}\n`;
-                    assumpGraph += `click ${nodeId} call showNodeDetails()\n`;
                 });
 
                 const container = document.createElement('div');
@@ -338,6 +338,25 @@
             clonedSvg.style.maxWidth = 'none';
             clonedSvg.id = 'fullscreen-svg';
             content.appendChild(clonedSvg);
+
+            // Re-attach click listeners since cloneNode doesn't copy them
+            clonedSvg.querySelectorAll('.node').forEach(node => {
+                node.style.cursor = 'pointer';
+                node.onclick = function(e) {
+                    const textSpan = node.querySelector('.nodeLabel') || node.querySelector('foreignObject');
+                    let clickedText = textSpan ? textSpan.textContent.trim() : node.textContent.trim();
+                    
+                    // Loose matching to handle newlines and spaces
+                    let foundText = "No details available.";
+                    for (let shortT in window.nodeTextMap) {
+                        if (clickedText.includes(shortT) || shortT.includes(clickedText) || clickedText === shortT) {
+                            foundText = window.nodeTextMap[shortT];
+                            break;
+                        }
+                    }
+                    showNodeDetails(foundText, true);
+                };
+            });
             
             overlay.classList.add('active');
             
