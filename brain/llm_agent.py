@@ -191,42 +191,10 @@ class GodsEyeAnalyst:
                 return data
             except Exception as e:
                 print(f"LLM API Error: {e}")
-                
-        # Simulated Fallback
-        impact_id = None
-        if tracked_theses:
-            impact_id = tracked_theses[0]['id']
-            
-        long_assumption = "Market sentiment continues to aggressively over-value growth equities despite tightening macroeconomic conditions and rising capital costs. Retail trading volumes have surged to unprecendented highs, creating a reflexive loop where price action dictates fundamental narratives rather than the inverse. This creates a highly fragile structural environment where any liquidity shock could trigger a cascading sell-off, particularly in tech names with massive P/E multiples that require flawless execution to justify their current valuations. The underlying moat remains strong, but the current premium leaves zero margin for error."
-        
-        import random
-        
-        simulated_data = {
-            "impacted_thesis_id": impact_id,
-            "title": "Tech Bubble Momentum Short",
-            "thesis": "The company shows strong free cash flow and a wide moat, but the stock is currently highly overvalued and crowded by momentum traders.",
-            "target_instrument": "UNKNOWN",
-            "position_type": "SHORT",
-            "alpha_score": random.randint(45, 95),
-            "assumptions": [
-                {"description": long_assumption, "status": "WEAKENED"},
-                {"description": "Macro environment remains favorable to Tech", "status": "NEUTRAL"},
-                {"description": "No major regulatory crackdowns occur", "status": "NEUTRAL"}
-            ],
-            "tags": ["[BUFFETT-REJECT]", "[BURRY-REJECT]", "[SOROS-ALIGNED]"]
-        }
-        self.inject_to_db(
-            simulated_data['thesis'], 
-            simulated_data['assumptions'], 
-            simulated_data['tags'], 
-            simulated_data['target_instrument'],
-            simulated_data['position_type'],
-            simulated_data['alpha_score'],
-            signal_id,
-            simulated_data.get('impacted_thesis_id'),
-            simulated_data['title']
-        )
-        return simulated_data
+                return None
+        else:
+            print("ERROR: GEMINI_API_KEY is not set or library is not installed. Cannot evaluate signal.")
+            return None
 
 if __name__ == "__main__":
     analyst = GodsEyeAnalyst()

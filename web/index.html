@@ -313,41 +313,82 @@
                     mermaid.init(undefined, document.getElementById(`mer-sig-${thesisId}`));
                     mermaid.init(undefined, document.getElementById(`mer-assump-${thesisId}`));
                     
-                    // Secretly stitch SVG lines to completely hide the junction circle but keep the perfect merge
+                    // Secretly stitch SVG lines to mathematically guarantee a perfect manifold
                     setTimeout(() => {
                         document.querySelectorAll('.mermaid').forEach(svgContainer => {
-                            svgContainer.querySelectorAll('.node.joint').forEach(joint => {
-                                const match = (joint.getAttribute('transform') || '').match(/translate\(([^,]+),\s*([^)]+)\)/);
-                                if(!match) return;
-                                const cx = parseFloat(match[1]), cy = parseFloat(match[2]);
-                                joint.style.display = 'none'; // hide circle completely
-                                
-                                svgContainer.querySelectorAll('.edgePath path').forEach(path => {
-                                    let parts = path.getAttribute('d').trim().split(/(?=[MLC])/);
-                                    
-                                    // Fix start point
-                                    let startMatch = parts[0].match(/M\s*([\d.-]+)[,\s]+([\d.-]+)/);
-                                    if(startMatch && Math.abs(parseFloat(startMatch[1]) - cx) < 25 && Math.abs(parseFloat(startMatch[2]) - cy) < 25) {
-                                        parts[0] = `M ${cx} ${cy} `;
-                                    }
-                                    
-                                    // Fix end point
-                                    let endPart = parts[parts.length - 1];
-                                    let endMatch = endPart.match(/([MLC])\s*(.*)$/);
-                                    if(endMatch) {
-                                        let nums = endPart.match(/-?\d+(?:\.\d+)?/g);
-                                        if(nums && nums.length >= 2) {
-                                            if(Math.abs(parseFloat(nums[nums.length-2]) - cx) < 25 && Math.abs(parseFloat(nums[nums.length-1]) - cy) < 25) {
-                                                nums[nums.length-2] = cx; nums[nums.length-1] = cy;
-                                                parts[parts.length - 1] = endMatch[1] + " " + nums.join(" ");
-                                            }
-                                        }
-                                    }
-                                    path.setAttribute('d', parts.join(''));
-                                });
+                            // Find the thesis node
+                            const thesisNode = Array.from(svgContainer.querySelectorAll('.node')).find(n => n.id.includes('flowchart-T'));
+                            if(!thesisNode) return;
+
+                            // Find all signal/assumption nodes
+                            const inputNodes = Array.from(svgContainer.querySelectorAll('.node')).filter(n => {
+                                return n.id.match(/flowchart-[AS]\d+-/);
                             });
+
+                            if (inputNodes.length > 0) {
+                                // Hide joint node
+                                const joint = Array.from(svgContainer.querySelectorAll('.node.joint'))[0];
+                                if (joint) joint.style.display = 'none';
+
+                                // Hide all default dagre edges completely
+                                const edgePathsGroup = svgContainer.querySelector('.edgePaths');
+                                if (edgePathsGroup) edgePathsGroup.style.display = 'none';
+
+                                // Extract coords
+                                let coords = inputNodes.map(node => {
+                                    const match = node.getAttribute('transform').match(/translate\(([^,]+),\s*([^)]+)\)/);
+                                    if(!match) return null;
+                                    const rect = node.querySelector('rect') || node.querySelector('foreignObject');
+                                    let h = 0;
+                                    if(rect) h = parseFloat(rect.getAttribute('height') || 0);
+                                    return { x: parseFloat(match[1]), y: parseFloat(match[2]), h: h };
+                                }).filter(c => c !== null);
+
+                                const tMatch = thesisNode.getAttribute('transform').match(/translate\(([^,]+),\s*([^)]+)\)/);
+                                const tRect = thesisNode.querySelector('rect');
+                                const tCoord = {
+                                    x: parseFloat(tMatch[1]),
+                                    y: parseFloat(tMatch[2]),
+                                    h: parseFloat(tRect.getAttribute('height'))
+                                };
+
+                                if(coords.length > 0 && tMatch) {
+                                    let maxBottom = Math.max(...coords.map(c => c.y + c.h/2));
+                                    let tTop = tCoord.y - tCoord.h/2;
+                                    
+                                    // If there is only 1 node (like Signals), route straight down. 
+                                    // If there are multiple (like Assumptions), draw the manifold horizontal bar.
+                                    let manifoldY = coords.length === 1 ? null : (maxBottom + tTop) / 2;
+
+                                    let d = "";
+                                    if (coords.length === 1) {
+                                        d += `M ${coords[0].x} ${coords[0].y + coords[0].h/2} L ${tCoord.x} ${tTop}`;
+                                    } else {
+                                        // Vertical lines from nodes to manifold
+                                        coords.forEach(c => {
+                                            d += `M ${c.x} ${c.y + c.h/2} L ${c.x} ${manifoldY} `;
+                                        });
+
+                                        // Horizontal line
+                                        let minX = Math.min(...coords.map(c => c.x));
+                                        let maxX = Math.max(...coords.map(c => c.x));
+                                        d += `M ${minX} ${manifoldY} L ${maxX} ${manifoldY} `;
+
+                                        // Vertical line down to Thesis
+                                        d += `M ${tCoord.x} ${manifoldY} L ${tCoord.x} ${tTop} `;
+                                    }
+
+                                    const newPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                    newPath.setAttribute('d', d);
+                                    newPath.setAttribute('style', 'fill:none; stroke:#38bdf8; stroke-width:2px;');
+                                    
+                                    if(edgePathsGroup) {
+                                        edgePathsGroup.parentNode.insertBefore(newPath, edgePathsGroup.nextSibling);
+                                    }
+                                }
+                            }
                         });
-                    }, 50);
+                    }, 100);
                 }, 100);
 
             } catch(e) {
