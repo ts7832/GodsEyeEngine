@@ -279,10 +279,6 @@
 
                 let assumpGraph = `graph TD\n${styleDefs}`;
                 assumpGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
-                if (assumptions.length > 0) {
-                    assumpGraph += `J_A${thesisId}[" "]:::joint\n`;
-                    assumpGraph += `J_A${thesisId} --- T${thesisId}\n`;
-                }
                 assumptions.forEach(a => {
                     let text = a.description.replace(/"/g, "'").replace(/\n/g, ' ');
                     let shortText = text.split(' ').slice(0, 5).join(' ') + '...';
@@ -293,7 +289,7 @@
                     window.nodeTextMap[displayLabel] = text;
                     let nodeId = `A${a.id}`;
                     assumpGraph += `${nodeId}["${displayLabel}"]:::${statusClass}\n`;
-                    assumpGraph += `${nodeId} --- J_A${thesisId}\n`;
+                    assumpGraph += `${nodeId} --- T${thesisId}\n`;
                 });
 
                 const container = document.createElement('div');
