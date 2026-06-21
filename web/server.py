@@ -150,7 +150,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif path == '/api/trigger_scrape':
             try:
                 project_root = os.path.abspath(os.path.join(DIRECTORY, '..'))
-                subprocess.Popen(["bash", "run_all.sh"], cwd=project_root)
+                log_file = open(os.path.join(project_root, "scrape.log"), "w")
+                subprocess.Popen(["bash", "run_all.sh"], cwd=project_root, stdout=log_file, stderr=log_file)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()

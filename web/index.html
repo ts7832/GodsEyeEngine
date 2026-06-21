@@ -152,9 +152,9 @@
 
         async function triggerScrape() {
             const btn = document.querySelector('.btn.scrape');
-            btn.innerText = '[SCRAPING...]';
+            btn.innerText = '[SCRAPING IN BACKGROUND...]';
             await fetch('/api/trigger_scrape', { method: 'POST' });
-            setTimeout(() => { btn.innerText = '[INITIATE SCRAPE]'; updateTimer(); fetchTheses(); }, 5000);
+            setTimeout(() => { btn.innerText = '[INITIATE SCRAPE]'; updateTimer(); fetchTheses(); }, 30000);
         }
 
         async function updateTimer() {
