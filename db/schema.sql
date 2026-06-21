@@ -47,3 +47,12 @@ CREATE TABLE IF NOT EXISTS CIO_Feedback (
     timestamp INTEGER NOT NULL,
     FOREIGN KEY(thesis_id) REFERENCES Theses(id)
 );
+
+-- ThesisSignals: The memory bridge connecting raw intel signals to the final thesis
+CREATE TABLE IF NOT EXISTS ThesisSignals (
+    thesis_id INTEGER NOT NULL,
+    signal_id INTEGER NOT NULL,
+    FOREIGN KEY(thesis_id) REFERENCES Theses(id),
+    FOREIGN KEY(signal_id) REFERENCES Signals(id),
+    PRIMARY KEY (thesis_id, signal_id)
+);

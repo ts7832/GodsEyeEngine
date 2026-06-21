@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>God's Eye // UNCLASSIFIED</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <style>
         :root {
             --bg-dark: #0a0f18;
@@ -86,6 +87,18 @@
             padding: 0.75rem;
             background: rgba(0, 0, 0, 0.3);
             margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .thesis-card:hover {
+            border-color: rgba(56, 189, 248, 0.5);
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .thesis-card.active {
+            border-color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.1);
         }
 
         .thesis-title {
@@ -99,6 +112,25 @@
             color: var(--text-main);
             line-height: 1.4;
             margin-bottom: 0.5rem;
+        }
+
+        .expansion-area {
+            display: none;
+            margin-top: 1rem;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 1rem;
+        }
+
+        .thesis-card.active .expansion-area {
+            display: block;
+        }
+
+        .mermaid-container {
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border: 1px solid #1e293b;
+            margin-top: 10px;
+            text-align: center;
         }
 
         .tag-container {
@@ -194,21 +226,25 @@
         <!-- Right Sidebar -->
         <div class="panel">
             <div class="panel-header">
-                <span>CIO Override (Memory Layer)</span>
+                <span id="cio-header">CIO OVERRIDE (GLOBAL)</span>
             </div>
             <p style="color: var(--text-muted); font-size: 11px; margin-bottom: 0.5rem;">
-                Inject feedback into the RAG matrix to alter future agent evaluations.
+                Click a thesis card to target it, or inject feedback globally into the RAG matrix.
             </p>
-            <textarea class="cio-input" placeholder="> INPUT OVERRIDE COMMAND..."></textarea>
+            <textarea id="cio-text" class="cio-input" placeholder="> INPUT OVERRIDE COMMAND..."></textarea>
             <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
-                <button class="btn">Execute</button>
+                <button class="btn" onclick="submitFeedback()">Execute</button>
             </div>
         </div>
     </div>
 
     <script>
+        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+        let selectedThesisId = null;
+        let knownThesesIds = new Set();
+
         function formatTags(desc) {
-            // Find tags like [BURRY-ALIGNED] and color them
             const regex = /\[(.*?)\]/g;
             return desc.replace(regex, (match, tagText) => {
                 let className = 'tag';
@@ -218,6 +254,105 @@
             });
         }
 
+        async function fetchGraphs(thesisId, cardElement) {
+            const expArea = cardElement.querySelector('.expansion-area');
+            if(expArea.innerHTML !== '') return; // Already loaded
+
+            expArea.innerHTML = `<div style="text-align:center; color:var(--accent-blue); font-family:'Roboto Mono', monospace; font-size:11px;">DECRYPTING NODES...</div>`;
+            
+            try {
+                const aRes = await fetch(`/api/assumptions?thesis_id=${thesisId}`);
+                const assumptions = await aRes.json();
+                
+                const sRes = await fetch(`/api/thesis_signals?thesis_id=${thesisId}`);
+                const signals = await sRes.json();
+
+                let mermaidGraph = `graph TD\n`;
+                mermaidGraph += `classDef thesis fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff;\n`;
+                mermaidGraph += `classDef assumption fill:#1e293b,stroke:#cbd5e1,color:#fff;\n`;
+                mermaidGraph += `classDef signal fill:#3f2a14,stroke:#f59e0b,color:#fff;\n`;
+                
+                mermaidGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
+                
+                assumptions.forEach(a => {
+                    let text = a.description.replace(/"/g, "'");
+                    mermaidGraph += `A${a.id}["[ASSUMPTION] ${text}"]:::assumption\n`;
+                    mermaidGraph += `A${a.id} --> T${thesisId}\n`;
+                });
+
+                signals.forEach(s => {
+                    let text = s.content.replace(/"/g, "'");
+                    mermaidGraph += `S${s.id}["[SIGNAL: ${s.source}] ${text}"]:::signal\n`;
+                    mermaidGraph += `S${s.id} -.-> T${thesisId}\n`;
+                });
+                
+                if(assumptions.length === 0 && signals.length === 0) {
+                    expArea.innerHTML = `<div style="font-size:10px; color:var(--text-muted); font-family:'Roboto Mono', monospace;">NO CONNECTED NODES FOUND</div>`;
+                    return;
+                }
+
+                expArea.innerHTML = `
+                    <div style="font-size:11px; color:var(--accent-blue); margin-bottom:5px; font-family:'Roboto Mono', monospace;">[INTEL GRAPH & ASSUMPTION MATRIX]</div>
+                    <div class="mermaid-container">
+                        <div class="mermaid" id="mer-${thesisId}">${mermaidGraph}</div>
+                    </div>
+                `;
+                
+                // Render mermaid inside the block
+                setTimeout(() => {
+                    mermaid.init(undefined, document.getElementById(`mer-${thesisId}`));
+                }, 100);
+
+            } catch(e) {
+                expArea.innerHTML = `<div style="color:var(--danger); font-family:'Roboto Mono', monospace;">DECRYPTION FAILED</div>`;
+            }
+        }
+
+        window.toggleThesis = function(id, element) {
+            document.querySelectorAll('.thesis-card').forEach(c => {
+                if(c !== element) c.classList.remove('active');
+            });
+            
+            if(element.classList.contains('active')) {
+                element.classList.remove('active');
+                selectedThesisId = null;
+                document.getElementById('cio-header').innerText = `CIO OVERRIDE (GLOBAL)`;
+            } else {
+                element.classList.add('active');
+                selectedThesisId = id;
+                document.getElementById('cio-header').innerText = `CIO OVERRIDE // TARGET: THESIS #${id}`;
+                fetchGraphs(id, element);
+            }
+        };
+
+        async function submitFeedback() {
+            const input = document.getElementById('cio-text').value;
+            if(!input) return;
+            
+            const payload = {
+                thesis_id: selectedThesisId,
+                feedback_text: input
+            };
+            
+            const btn = document.querySelector('.btn');
+            btn.innerText = 'EXECUTING...';
+            
+            try {
+                await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                document.getElementById('cio-text').value = '';
+                btn.innerText = 'SUCCESS';
+                setTimeout(() => btn.innerText = 'EXECUTE', 2000);
+            } catch(e) {
+                console.error(e);
+                btn.innerText = 'ERROR';
+                setTimeout(() => btn.innerText = 'EXECUTE', 2000);
+            }
+        }
+
         async function fetchTheses() {
             try {
                 const response = await fetch('/api/theses');
@@ -225,28 +360,35 @@
                 
                 const container = document.getElementById('theses-container');
                 if (theses.length === 0) {
-                    container.innerHTML = `<div style="color: var(--text-muted); font-family: 'Roboto Mono', monospace; font-size: 11px;">No active theses found in database.</div>`;
+                    if (knownThesesIds.size === 0) {
+                        container.innerHTML = `<div style="color: var(--text-muted); font-family: 'Roboto Mono', monospace; font-size: 11px;">Awaiting signal intercept...</div>`;
+                    }
                     return;
                 }
 
-                container.innerHTML = '';
-                theses.forEach(t => {
-                    // We split the description logic to find Tags if they exist
-                    let cleanDesc = t.description;
-                    let formattedHTML = formatTags(cleanDesc);
+                if (knownThesesIds.size === 0) container.innerHTML = ''; // clear initial
 
-                    const card = document.createElement('div');
-                    card.className = 'thesis-card';
-                    card.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <div class="thesis-title">THESIS #${t.id}</div>
-                            <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; color: ${t.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)'}">
-                                [${t.status}]
+                theses.forEach(t => {
+                    if(!knownThesesIds.has(t.id)) {
+                        knownThesesIds.add(t.id);
+                        let cleanDesc = t.description;
+                        let formattedHTML = formatTags(cleanDesc);
+
+                        const card = document.createElement('div');
+                        card.className = 'thesis-card';
+                        card.setAttribute('onclick', `toggleThesis(${t.id}, this)`);
+                        card.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <div class="thesis-title">THESIS #${t.id}</div>
+                                <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; color: ${t.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)'}">
+                                    [${t.status}]
+                                </div>
                             </div>
-                        </div>
-                        <div class="thesis-desc">${formattedHTML.replace(/\n/g, '<br>')}</div>
-                    `;
-                    container.appendChild(card);
+                            <div class="thesis-desc">${formattedHTML.replace(/\n/g, '<br>')}</div>
+                            <div class="expansion-area"></div>
+                        `;
+                        container.insertBefore(card, container.firstChild);
+                    }
                 });
 
                 document.getElementById('last-updated').innerText = new Date().toLocaleTimeString();
@@ -255,9 +397,7 @@
             }
         }
 
-        // Poll every 5 seconds
         setInterval(fetchTheses, 5000);
-        // Initial fetch
         fetchTheses();
     </script>
 </body>

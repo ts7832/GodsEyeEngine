@@ -4,6 +4,8 @@ import os
 import logging
 import json
 import sqlite3
+from urllib.parse import urlparse, parse_qs
+import time
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,11 +18,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
 
     def do_GET(self):
-        if self.path == '/api/theses':
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+        query = parse_qs(parsed_path.query)
+
+        if path == '/api/theses':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            
             try:
                 conn = sqlite3.connect(DB_PATH)
                 conn.row_factory = sqlite3.Row
@@ -34,16 +39,45 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
             return
             
-        elif self.path == '/api/signals':
+        elif path == '/api/assumptions':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            
+            thesis_id = query.get('thesis_id', [None])[0]
+            if not thesis_id:
+                self.wfile.write(json.dumps([]).encode('utf-8'))
+                return
             try:
                 conn = sqlite3.connect(DB_PATH)
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                cursor.execute("SELECT id, source, domain, content, timestamp FROM Signals ORDER BY timestamp DESC LIMIT 50")
+                cursor.execute("SELECT id, description, active FROM Assumptions WHERE thesis_id = ?", (thesis_id,))
+                rows = cursor.fetchall()
+                data = [dict(row) for row in rows]
+                conn.close()
+                self.wfile.write(json.dumps(data).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
+
+        elif path == '/api/thesis_signals':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            thesis_id = query.get('thesis_id', [None])[0]
+            if not thesis_id:
+                self.wfile.write(json.dumps([]).encode('utf-8'))
+                return
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT s.id, s.source, s.domain, s.content, s.timestamp 
+                    FROM Signals s
+                    JOIN ThesisSignals ts ON s.id = ts.signal_id
+                    WHERE ts.thesis_id = ?
+                """, (thesis_id,))
                 rows = cursor.fetchall()
                 data = [dict(row) for row in rows]
                 conn.close()
@@ -53,6 +87,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         return super().do_GET()
+
+    def do_POST(self):
+        parsed_path = urlparse(self.path)
+        path = parsed_path.path
+
+        if path == '/api/feedback':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            thesis_id = data.get('thesis_id')
+            feedback_text = data.get('feedback_text')
+            
+            if not feedback_text:
+                self.send_response(400)
+                self.end_headers()
+                return
+
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO CIO_Feedback (thesis_id, feedback_text, timestamp)
+                    VALUES (?, ?, ?)
+                """, (thesis_id, feedback_text, int(time.time())))
+                conn.commit()
+                conn.close()
+                
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
 
 def run():
     socketserver.TCPServer.allow_reuse_address = True
