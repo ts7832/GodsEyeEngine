@@ -262,22 +262,31 @@
                                 `classDef strengthened fill:#064e3b,stroke:#34d399,color:#fff;\n` +
                                 `classDef weakened fill:#7f1d1d,stroke:#f87171,color:#fff;\n` +
                                 `classDef signal fill:#3f2a14,stroke:#f59e0b,color:#fff;\n` +
+                                `classDef joint fill:#38bdf8,stroke:none,color:transparent;\n` +
                                 `linkStyle default stroke:#38bdf8,stroke-width:2px;\n`;
 
                 let signalsGraph = `graph TD\n${styleDefs}`;
                 signalsGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
+                if (signals.length > 0) {
+                    signalsGraph += `J_S${thesisId}((" ")):::joint\n`;
+                    signalsGraph += `J_S${thesisId} --- T${thesisId}\n`;
+                }
                 signals.forEach(s => {
                     let text = s.content.replace(/"/g, "'").replace(/\n/g, ' ');
                     let shortText = text.split(' ').slice(0, 5).join(' ') + '...';
                     let nodeId = `S${s.id}`;
                     window.nodeTextMap[nodeId] = text;
                     signalsGraph += `${nodeId}["[SIGNAL] ${shortText}"]:::signal\n`;
-                    signalsGraph += `${nodeId} --- T${thesisId}\n`;
+                    signalsGraph += `${nodeId} --- J_S${thesisId}\n`;
                     signalsGraph += `click ${nodeId} call showNodeDetails()\n`;
                 });
 
                 let assumpGraph = `graph TD\n${styleDefs}`;
                 assumpGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
+                if (assumptions.length > 0) {
+                    assumpGraph += `J_A${thesisId}((" ")):::joint\n`;
+                    assumpGraph += `J_A${thesisId} --- T${thesisId}\n`;
+                }
                 assumptions.forEach(a => {
                     let text = a.description.replace(/"/g, "'").replace(/\n/g, ' ');
                     let shortText = text.split(' ').slice(0, 5).join(' ') + '...';
@@ -287,7 +296,7 @@
                     let nodeId = `A${a.id}`;
                     window.nodeTextMap[nodeId] = text;
                     assumpGraph += `${nodeId}["[${a.status}] ${shortText}"]:::${statusClass}\n`;
-                    assumpGraph += `${nodeId} --- T${thesisId}\n`;
+                    assumpGraph += `${nodeId} --- J_A${thesisId}\n`;
                     assumpGraph += `click ${nodeId} call showNodeDetails()\n`;
                 });
 
