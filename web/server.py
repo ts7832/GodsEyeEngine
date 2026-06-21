@@ -107,6 +107,32 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
             return
 
+        elif path == '/api/logs':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            logs = "No scrape.log found."
+            log_path = os.path.abspath(os.path.join(DIRECTORY, '..', 'scrape.log'))
+            if os.path.exists(log_path):
+                with open(log_path, 'r') as f:
+                    logs = f.read()
+                    
+            db_status = "OK"
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute("SELECT is_tracked FROM Theses LIMIT 1")
+                conn.close()
+            except Exception as e:
+                db_status = str(e)
+
+            self.wfile.write(json.dumps({
+                "scrape_logs": logs,
+                "db_status": db_status
+            }).encode('utf-8'))
+            return
+
         return super().do_GET()
 
     def do_POST(self):
@@ -229,31 +255,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
             return
-
-        elif path == '/api/logs':
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            
-            logs = "No scrape.log found."
-            log_path = os.path.abspath(os.path.join(DIRECTORY, '..', 'scrape.log'))
-            if os.path.exists(log_path):
-                with open(log_path, 'r') as f:
-                    logs = f.read()
-                    
-            db_status = "OK"
-            try:
-                conn = sqlite3.connect(DB_PATH)
-                cursor = conn.cursor()
-                cursor.execute("SELECT is_tracked FROM Theses LIMIT 1")
-                conn.close()
             except Exception as e:
-                db_status = str(e)
-
-            self.wfile.write(json.dumps({
-                "scrape_logs": logs,
-                "db_status": db_status
-            }).encode('utf-8'))
+                self.send_response(500)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
             return
 
 import threading
