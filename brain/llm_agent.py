@@ -100,8 +100,10 @@ class GodsEyeAnalyst:
         {BUFFETT_FRAMEWORK}
         {SOROS_FRAMEWORK}
         
-        ASSET DATA:
+        ASSET DATA (Includes 5-Year Scans & Solvency Metrics):
         {asset_data_json}
+        
+        CRITICAL INSTRUCTION: Do not blindly extrapolate the 5-year trends into the future. Use them only to understand the historical trajectory and structural decay/growth of the business.
         
         PREVIOUS CIO FEEDBACK TO ADHERE TO:
         {cio_feedback}
