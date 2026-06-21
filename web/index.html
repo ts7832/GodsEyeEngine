@@ -95,6 +95,7 @@
     <div id="modal-overlay" class="modal-overlay">
         <div class="modal-close" onclick="closeModal()">[X] CLOSE</div>
         <div id="modal-content" class="modal-content"></div>
+        <div id="details-panel" style="display:none; position:absolute; bottom:20px; left:50%; transform:translateX(-50%); width:80%; max-width:600px; background:rgba(15,23,42,0.9); border:1px solid var(--accent-blue); color:var(--text-main); padding:15px; font-family:'Inter', sans-serif; font-size:14px; z-index:10001; text-align:center;"></div>
     </div>
 
     <header>
@@ -143,6 +144,14 @@
         let selectedThesisId = null;
         let lastScrapeTs = 0;
         let thesesData = [];
+        window.nodeTextMap = {};
+
+        function showNodeDetails(nodeId) {
+            const fullText = window.nodeTextMap[nodeId] || "No details available.";
+            const panel = document.getElementById('details-panel');
+            panel.innerText = fullText;
+            panel.style.display = 'block';
+        }
 
         function switchTab(tabName) {
             currentTab = tabName;
@@ -247,29 +256,39 @@
                 const sRes = await fetch(`/api/thesis_signals?thesis_id=${thesisId}`);
                 const signals = await sRes.json();
 
-                let styleDefs = `classDef thesis fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff;\n` +
-                                `classDef neutral fill:#1e293b,stroke:#cbd5e1,color:#fff;\n` +
+                let styleDefs = `%%{init: {"flowchart": {"curve": "step"}}}%%\n` +
+                                `classDef thesis fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#fff;\n` +
+                                `classDef neutral fill:#1e293b,stroke:#64748b,color:#fff;\n` +
                                 `classDef strengthened fill:#064e3b,stroke:#34d399,color:#fff;\n` +
                                 `classDef weakened fill:#7f1d1d,stroke:#f87171,color:#fff;\n` +
-                                `classDef signal fill:#3f2a14,stroke:#f59e0b,color:#fff;\n`;
+                                `classDef signal fill:#3f2a14,stroke:#f59e0b,color:#fff;\n` +
+                                `linkStyle default stroke:#38bdf8,stroke-width:2px;\n`;
 
                 let signalsGraph = `graph TD\n${styleDefs}`;
                 signalsGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
                 signals.forEach(s => {
-                    let text = s.content.replace(/"/g, "'");
-                    signalsGraph += `S${s.id}["[SIGNAL] ${text}"]:::signal\n`;
-                    signalsGraph += `S${s.id} -.-> T${thesisId}\n`;
+                    let text = s.content.replace(/"/g, "'").replace(/\n/g, ' ');
+                    let shortText = text.split(' ').slice(0, 5).join(' ') + '...';
+                    let nodeId = `S${s.id}`;
+                    window.nodeTextMap[nodeId] = text;
+                    signalsGraph += `${nodeId}["[SIGNAL] ${shortText}"]:::signal\n`;
+                    signalsGraph += `${nodeId} --- T${thesisId}\n`;
+                    signalsGraph += `click ${nodeId} call showNodeDetails()\n`;
                 });
 
                 let assumpGraph = `graph TD\n${styleDefs}`;
                 assumpGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
                 assumptions.forEach(a => {
-                    let text = a.description.replace(/"/g, "'");
+                    let text = a.description.replace(/"/g, "'").replace(/\n/g, ' ');
+                    let shortText = text.split(' ').slice(0, 5).join(' ') + '...';
                     let statusClass = "neutral";
                     if(a.status === 'STRENGTHENED') statusClass = "strengthened";
                     if(a.status === 'WEAKENED') statusClass = "weakened";
-                    assumpGraph += `A${a.id}["[${a.status}] ${text}"]:::${statusClass}\n`;
-                    assumpGraph += `A${a.id} --> T${thesisId}\n`;
+                    let nodeId = `A${a.id}`;
+                    window.nodeTextMap[nodeId] = text;
+                    assumpGraph += `${nodeId}["[${a.status}] ${shortText}"]:::${statusClass}\n`;
+                    assumpGraph += `${nodeId} --- T${thesisId}\n`;
+                    assumpGraph += `click ${nodeId} call showNodeDetails()\n`;
                 });
 
                 const container = document.createElement('div');
@@ -330,6 +349,7 @@
                 window.panZoomInstance = null;
             }
             document.getElementById('modal-overlay').classList.remove('active');
+            document.getElementById('details-panel').style.display = 'none';
         }
 
         function createCardHTML(t) {
@@ -373,7 +393,7 @@
                     <div class="card-header">
                         <div class="card-title">${displayTitle} ${icons.join(' ')}</div>
                         <div class="card-metrics">
-                            ${t.target_instrument && t.target_instrument !== 'UNKNOWN' ? `<span class="metric">${t.target_instrument} [${t.position_type}]</span>` : ''}
+                            <span class="metric">${t.target_instrument || 'UNKNOWN'} [${t.position_type || 'UNKNOWN'}]</span>
                             <span class="metric alpha">ALPHA: ${t.alpha_score || 0}</span>
                             ${pnlHtml}
                         </div>
