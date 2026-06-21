@@ -46,7 +46,7 @@ class GodsEyeAnalyst:
         api_key = os.environ.get("GEMINI_API_KEY")
         if api_key and genai:
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-pro')
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
         else:
             self.model = None
             print("WARNING: GEMINI_API_KEY not set or library not installed. Falling back to local simulation.")
