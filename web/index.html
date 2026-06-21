@@ -262,15 +262,11 @@
                                 `classDef strengthened fill:#064e3b,stroke:#34d399,color:#fff;\n` +
                                 `classDef weakened fill:#7f1d1d,stroke:#f87171,color:#fff;\n` +
                                 `classDef signal fill:#3f2a14,stroke:#f59e0b,color:#fff;\n` +
-                                `classDef joint fill:#38bdf8,stroke:none,color:transparent;\n` +
+                                `classDef joint fill:transparent,stroke:none,color:transparent;\n` +
                                 `linkStyle default stroke:#38bdf8,stroke-width:2px;\n`;
 
                 let signalsGraph = `graph TD\n${styleDefs}`;
                 signalsGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
-                if (signals.length > 0) {
-                    signalsGraph += `J_S${thesisId}((" ")):::joint\n`;
-                    signalsGraph += `J_S${thesisId} --- T${thesisId}\n`;
-                }
                 signals.forEach(s => {
                     let text = s.content.replace(/"/g, "'").replace(/\n/g, ' ');
                     let shortText = text.split(' ').slice(0, 5).join(' ') + '...';
@@ -278,13 +274,13 @@
                     window.nodeTextMap[displayLabel] = text;
                     let nodeId = `S${s.id}`;
                     signalsGraph += `${nodeId}["${displayLabel}"]:::signal\n`;
-                    signalsGraph += `${nodeId} --- J_S${thesisId}\n`;
+                    signalsGraph += `${nodeId} --- T${thesisId}\n`;
                 });
 
                 let assumpGraph = `graph TD\n${styleDefs}`;
                 assumpGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
                 if (assumptions.length > 0) {
-                    assumpGraph += `J_A${thesisId}((" ")):::joint\n`;
+                    assumpGraph += `J_A${thesisId}[" "]:::joint\n`;
                     assumpGraph += `J_A${thesisId} --- T${thesisId}\n`;
                 }
                 assumptions.forEach(a => {
