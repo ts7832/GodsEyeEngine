@@ -87,6 +87,7 @@
         <div class="header-controls">
             <span class="timer-text" id="timer">LAST SCRAPE: CHECKING...</span>
             <button class="btn scrape" onclick="triggerScrape()">[INITIATE SCRAPE]</button>
+            <button class="btn" style="color: var(--text-muted); border-color: var(--text-muted);" onclick="viewLogs()">[VIEW LOGS]</button>
         </div>
     </header>
 
@@ -155,6 +156,17 @@
             btn.innerText = '[SCRAPING IN BACKGROUND...]';
             await fetch('/api/trigger_scrape', { method: 'POST' });
             setTimeout(() => { btn.innerText = '[INITIATE SCRAPE]'; updateTimer(); fetchTheses(); }, 30000);
+        }
+
+        async function viewLogs() {
+            try {
+                const res = await fetch('/api/logs');
+                const data = await res.json();
+                let w = window.open("", "Logs", "width=800,height=600");
+                w.document.write(`<pre style="background:#0a0f18; color:#cbd5e1; padding:20px; font-family:monospace; white-space:pre-wrap;"><b>DATABASE STATUS:</b> ${data.db_status}\n\n<b>SCRAPE LOGS:</b>\n${data.scrape_logs}</pre>`);
+            } catch(e) {
+                alert("Failed to fetch logs.");
+            }
         }
 
         async function updateTimer() {
