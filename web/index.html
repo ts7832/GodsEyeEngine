@@ -6,6 +6,7 @@
     <title>God's Eye // COMMAND CENTER</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
     <style>
         :root {
             --bg-dark: #0a0f18;
@@ -77,11 +78,25 @@
         .btn.star { color: var(--accent-gold); border-color: var(--accent-gold); }
         .btn.star:hover { background: rgba(251, 191, 36, 0.1); }
 
-        .mermaid-container { background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #1e293b; margin-top: 10px; text-align: center; }
+        .mermaid-container { background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #1e293b; margin-top: 10px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+        .mermaid-container:hover { border-color: var(--accent-blue); }
+        .graph-title { font-family: 'Roboto Mono', monospace; font-size: 10px; color: var(--text-muted); text-align: left; margin-bottom: 5px; }
         .tag { font-family: 'Roboto Mono', monospace; font-size: 9px; padding: 2px 4px; border: 1px solid var(--border-color); color: var(--text-muted); margin-right: 4px; }
+        
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 9999; }
+        .modal-overlay.active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .modal-close { position: absolute; top: 20px; right: 20px; color: var(--accent-blue); cursor: pointer; font-family: 'Roboto Mono', monospace; border: 1px solid var(--accent-blue); padding: 5px 10px; background: #000; z-index: 10000; }
+        .modal-close:hover { background: rgba(56, 189, 248, 0.1); }
+        .modal-content { width: 95vw; height: 90vh; background: #0a0f18; border: 1px solid var(--accent-blue); position: relative; }
     </style>
 </head>
 <body>
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-close" onclick="closeModal()">[X] CLOSE</div>
+        <div id="modal-content" class="modal-content"></div>
+    </div>
+
     <header>
         <h1><span style="color:var(--text-main)">GOD'S EYE</span> // COMMAND CENTER</h1>
         <div class="header-controls">
@@ -195,6 +210,16 @@
             fetchTheses();
         }
 
+        async function actionUntrack(id) {
+            await fetch('/api/track', { method: 'POST', body: JSON.stringify({ thesis_id: id, is_tracked: 0 }) });
+            fetchTheses();
+        }
+
+        async function actionUnstar(id) {
+            await fetch('/api/star', { method: 'POST', body: JSON.stringify({ thesis_id: id, is_starred: 0 }) });
+            fetchTheses();
+        }
+
         function toggleCard(id, element) {
             const isActive = element.classList.contains('active');
             document.querySelectorAll('.thesis-card').forEach(c => c.classList.remove('active'));
@@ -212,6 +237,7 @@
 
         async function fetchGraphs(thesisId, cardElement) {
             const bodyArea = cardElement.querySelector('.card-body');
+            const actionRow = bodyArea.querySelector('.action-row');
             if(bodyArea.querySelector('.mermaid-container')) return; // Already loaded
 
             try {
@@ -221,46 +247,89 @@
                 const sRes = await fetch(`/api/thesis_signals?thesis_id=${thesisId}`);
                 const signals = await sRes.json();
 
-                let mermaidGraph = `graph TD\n`;
-                mermaidGraph += `classDef thesis fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff;\n`;
-                mermaidGraph += `classDef neutral fill:#1e293b,stroke:#cbd5e1,color:#fff;\n`;
-                mermaidGraph += `classDef strengthened fill:#064e3b,stroke:#34d399,color:#fff;\n`; // Green
-                mermaidGraph += `classDef weakened fill:#7f1d1d,stroke:#f87171,color:#fff;\n`; // Red
-                mermaidGraph += `classDef signal fill:#3f2a14,stroke:#f59e0b,color:#fff;\n`;
-                
-                mermaidGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
-                
+                let styleDefs = `classDef thesis fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff;\n` +
+                                `classDef neutral fill:#1e293b,stroke:#cbd5e1,color:#fff;\n` +
+                                `classDef strengthened fill:#064e3b,stroke:#34d399,color:#fff;\n` +
+                                `classDef weakened fill:#7f1d1d,stroke:#f87171,color:#fff;\n` +
+                                `classDef signal fill:#3f2a14,stroke:#f59e0b,color:#fff;\n`;
+
+                let signalsGraph = `graph TD\n${styleDefs}`;
+                signalsGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
+                signals.forEach(s => {
+                    let text = s.content.replace(/"/g, "'");
+                    signalsGraph += `S${s.id}["[SIGNAL] ${text}"]:::signal\n`;
+                    signalsGraph += `S${s.id} -.-> T${thesisId}\n`;
+                });
+
+                let assumpGraph = `graph TD\n${styleDefs}`;
+                assumpGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
                 assumptions.forEach(a => {
                     let text = a.description.replace(/"/g, "'");
                     let statusClass = "neutral";
                     if(a.status === 'STRENGTHENED') statusClass = "strengthened";
                     if(a.status === 'WEAKENED') statusClass = "weakened";
-                    
-                    mermaidGraph += `A${a.id}["[${a.status}] ${text}"]:::${statusClass}\n`;
-                    mermaidGraph += `A${a.id} --> T${thesisId}\n`;
-                });
-
-                signals.forEach(s => {
-                    let text = s.content.replace(/"/g, "'");
-                    mermaidGraph += `S${s.id}["[SIGNAL: ${s.source}] ${text}"]:::signal\n`;
-                    mermaidGraph += `S${s.id} -.-> T${thesisId}\n`;
+                    assumpGraph += `A${a.id}["[${a.status}] ${text}"]:::${statusClass}\n`;
+                    assumpGraph += `A${a.id} --> T${thesisId}\n`;
                 });
 
                 const container = document.createElement('div');
                 container.innerHTML = `
-                    <div class="mermaid-container">
-                        <div class="mermaid" id="mer-${thesisId}">${mermaidGraph}</div>
+                    <div class="mermaid-container" onclick="openModal('mer-sig-${thesisId}')">
+                        <div class="graph-title">/// SIGNALS MAP [CLICK TO EXPAND]</div>
+                        <div class="mermaid" id="mer-sig-${thesisId}">${signalsGraph}</div>
+                    </div>
+                    <div class="mermaid-container" onclick="openModal('mer-assump-${thesisId}')">
+                        <div class="graph-title">/// ASSUMPTIONS MAP [CLICK TO EXPAND]</div>
+                        <div class="mermaid" id="mer-assump-${thesisId}">${assumpGraph}</div>
                     </div>
                 `;
-                bodyArea.appendChild(container);
+                bodyArea.insertBefore(container, actionRow);
                 
                 setTimeout(() => {
-                    mermaid.init(undefined, document.getElementById(`mer-${thesisId}`));
+                    mermaid.init(undefined, document.getElementById(`mer-sig-${thesisId}`));
+                    mermaid.init(undefined, document.getElementById(`mer-assump-${thesisId}`));
                 }, 100);
 
             } catch(e) {
                 console.error(e);
             }
+        }
+
+        function openModal(graphId) {
+            event.stopPropagation();
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            
+            const originalSvg = document.querySelector(`#${graphId} svg`);
+            if(!originalSvg) return;
+            
+            content.innerHTML = '';
+            const clonedSvg = originalSvg.cloneNode(true);
+            clonedSvg.style.width = '100%';
+            clonedSvg.style.height = '100%';
+            clonedSvg.style.maxWidth = 'none';
+            clonedSvg.id = 'fullscreen-svg';
+            content.appendChild(clonedSvg);
+            
+            overlay.classList.add('active');
+            
+            setTimeout(() => {
+                window.panZoomInstance = svgPanZoom('#fullscreen-svg', {
+                    zoomEnabled: true,
+                    controlIconsEnabled: true,
+                    fit: true,
+                    center: true,
+                    minZoom: 0.1
+                });
+            }, 100);
+        }
+
+        function closeModal() {
+            if(window.panZoomInstance) {
+                window.panZoomInstance.destroy();
+                window.panZoomInstance = null;
+            }
+            document.getElementById('modal-overlay').classList.remove('active');
         }
 
         function createCardHTML(t) {
@@ -272,15 +341,37 @@
             }
 
             let icons = [];
-            if (t.is_tracked) icons.push('👁️');
-            if (t.is_starred) icons.push('⭐');
+            if (t.is_tracked) icons.push('<span style="color:var(--accent-blue)">[TRK]</span>');
+            if (t.is_starred) icons.push('<span style="color:var(--accent-gold)">[LCK]</span>');
 
             let descPreview = t.description.split('\n')[0];
+            let displayTitle = t.title || '[UNCLASSIFIED ASSET]';
+            
+            let buttons = '';
+            if (!t.is_tracked) {
+                buttons = `<button class="btn" onclick="event.stopPropagation(); actionTrack(${t.id})">[O] TRACK THESIS</button>`;
+            } else {
+                buttons += `<button class="btn" onclick="event.stopPropagation(); actionUntrack(${t.id})">[X] UNTRACK</button> `;
+                if (!t.is_starred) {
+                    buttons += `<button class="btn star" onclick="event.stopPropagation(); actionStar(${t.id})">[*] LOCK TARGET</button>`;
+                } else {
+                    buttons += `<button class="btn" style="color:var(--danger);border-color:var(--danger);" onclick="event.stopPropagation(); actionUnstar(${t.id})">[-] UNLOCK TARGET</button>`;
+                }
+            }
+
+            // Restore active state and body content if this card was open before refresh
+            let activeClass = '';
+            let bodyContent = `<div style="margin-bottom: 10px;">${t.description.replace(/\n/g, '<br>')}</div>`;
+            
+            if (selectedThesisId === t.id && window.savedActiveBody) {
+                activeClass = 'active';
+                bodyContent = window.savedActiveBody;
+            }
             
             return `
-                <div class="thesis-card" id="card-${t.id}" onclick="toggleCard(${t.id}, this)">
+                <div class="thesis-card ${activeClass}" id="card-${t.id}" onclick="toggleCard(${t.id}, this)">
                     <div class="card-header">
-                        <div class="card-title">T-${t.id} ${icons.join('')}</div>
+                        <div class="card-title">${displayTitle} ${icons.join(' ')}</div>
                         <div class="card-metrics">
                             ${t.target_instrument && t.target_instrument !== 'UNKNOWN' ? `<span class="metric">${t.target_instrument} [${t.position_type}]</span>` : ''}
                             <span class="metric alpha">ALPHA: ${t.alpha_score || 0}</span>
@@ -292,11 +383,9 @@
                     </div>
                     
                     <div class="card-body">
-                        <div style="margin-bottom: 10px;">${t.description.replace(/\n/g, '<br>')}</div>
-                        
+                        ${bodyContent}
                         <div class="action-row">
-                            ${!t.is_tracked ? `<button class="btn" onclick="event.stopPropagation(); actionTrack(${t.id})">[O] TRACK THESIS</button>` : ''}
-                            ${(t.is_tracked && !t.is_starred && t.target_instrument && t.target_instrument !== 'UNKNOWN') ? `<button class="btn star" onclick="event.stopPropagation(); actionStar(${t.id})">[*] LOCK TARGET (PAPER TRADE)</button>` : ''}
+                            ${buttons}
                         </div>
                     </div>
                 </div>
@@ -304,6 +393,19 @@
         }
 
         function renderLists() {
+            // Save active body before clearing
+            if (selectedThesisId) {
+                const activeCard = document.querySelector(`.thesis-card#card-${selectedThesisId}`);
+                if (activeCard) {
+                    let bodyHtml = activeCard.querySelector('.card-body').innerHTML;
+                    // Strip the action row out, as it gets rebuilt by createCardHTML
+                    bodyHtml = bodyHtml.replace(/<div class="action-row">[\s\S]*?<\/div>/, '');
+                    window.savedActiveBody = bodyHtml;
+                } else {
+                    window.savedActiveBody = null;
+                }
+            }
+
             const rawContainer = document.getElementById('list-raw');
             const watchContainer = document.getElementById('list-watchlist');
             

@@ -22,6 +22,10 @@ def upgrade():
         cursor.execute("ALTER TABLE Theses ADD COLUMN entry_price FLOAT")
         cursor.execute("ALTER TABLE Theses ADD COLUMN current_price FLOAT")
         cursor.execute("ALTER TABLE Theses ADD COLUMN pnl_percentage FLOAT")
+
+    if "title" not in columns:
+        print("Upgrading Theses table with title...")
+        cursor.execute("ALTER TABLE Theses ADD COLUMN title VARCHAR")
         
     cursor.execute("PRAGMA table_info(Assumptions)")
     columns = [col[1] for col in cursor.fetchall()]

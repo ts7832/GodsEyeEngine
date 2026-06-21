@@ -65,7 +65,7 @@ class GodsEyeAnalyst:
             print(f"Error fetching tracked theses: {e}")
             return []
 
-    def inject_to_db(self, thesis_desc, assumptions, tags, target_instrument, position_type, alpha_score, signal_id, impacted_thesis_id=None):
+    def inject_to_db(self, thesis_desc, assumptions, tags, target_instrument, position_type, alpha_score, signal_id, impacted_thesis_id=None, title='UNCLASSIFIED ASSET'):
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
@@ -75,9 +75,9 @@ class GodsEyeAnalyst:
                 # Update existing tracked thesis
                 cursor.execute('''
                     UPDATE Theses 
-                    SET description = ?, updated_at = ?, alpha_score = ?
+                    SET description = ?, updated_at = ?, alpha_score = ?, title = ?
                     WHERE id = ?
-                ''', (thesis_desc, current_time, alpha_score, impacted_thesis_id))
+                ''', (thesis_desc, current_time, alpha_score, title, impacted_thesis_id))
                 thesis_id = impacted_thesis_id
                 
                 # Delete old assumptions and replace them with the updated ones
@@ -95,9 +95,9 @@ class GodsEyeAnalyst:
                 # Insert brand new Thesis
                 full_desc = f"{thesis_desc}\n\nTags: {' '.join(tags)}"
                 cursor.execute('''
-                    INSERT INTO Theses (description, status, confidence, created_at, updated_at, target_instrument, position_type, alpha_score)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (full_desc, 'ACTIVE', 0.8, current_time, current_time, target_instrument, position_type, alpha_score))
+                    INSERT INTO Theses (description, status, confidence, created_at, updated_at, target_instrument, position_type, alpha_score, title)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (full_desc, 'ACTIVE', 0.8, current_time, current_time, target_instrument, position_type, alpha_score, title))
                 thesis_id = cursor.lastrowid
                 
                 for assumption in assumptions:
@@ -156,6 +156,7 @@ class GodsEyeAnalyst:
         You MUST output ONLY a valid JSON object. Do not include markdown. The JSON must match exactly:
         {{
             "impacted_thesis_id": null, // OR the integer ID of the tracked thesis you are updating
+            "title": "A punchy 2-4 word title (e.g., Semiconductor Short, Argentine Bonds)",
             "thesis": "A concise paragraph explaining your core investment thesis...",
             "target_instrument": "AAPL",
             "position_type": "LONG",
@@ -184,7 +185,8 @@ class GodsEyeAnalyst:
                     data.get('position_type', 'UNKNOWN'),
                     data.get('alpha_score', 50),
                     signal_id,
-                    data.get('impacted_thesis_id')
+                    data.get('impacted_thesis_id'),
+                    data.get('title', 'UNCLASSIFIED ASSET')
                 )
                 return data
             except Exception as e:
@@ -193,6 +195,7 @@ class GodsEyeAnalyst:
         # Simulated Fallback
         simulated_data = {
             "impacted_thesis_id": None,
+            "title": "Tech Bubble Momentum Short",
             "thesis": "The company shows strong free cash flow and a wide moat, but the stock is currently highly overvalued and crowded by momentum traders.",
             "target_instrument": "UNKNOWN",
             "position_type": "SHORT",
@@ -212,7 +215,8 @@ class GodsEyeAnalyst:
             simulated_data['position_type'],
             simulated_data['alpha_score'],
             signal_id,
-            simulated_data.get('impacted_thesis_id')
+            simulated_data.get('impacted_thesis_id'),
+            simulated_data['title']
         )
         return simulated_data
 
