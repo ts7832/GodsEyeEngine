@@ -41,8 +41,12 @@ def fetch_top_news():
         # Grab top 3 headlines
         items = root.findall('.//item')[:3]
         for item in items:
-            title = item.find('title').text
-            desc = item.find('description').text
+            title_node = item.find('title')
+            desc_node = item.find('description')
+            
+            title = title_node.text if title_node is not None else "No Title"
+            desc = desc_node.text if desc_node is not None else "No Description"
+            
             # Clean up desc if needed
             if desc and '<' in desc:
                 desc = desc.split('<')[0]
