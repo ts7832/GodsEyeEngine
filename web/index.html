@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>God's Eye // UNCLASSIFIED</title>
+    <title>God's Eye // COMMAND CENTER</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <style>
@@ -14,222 +14,106 @@
             --text-main: #cbd5e1;
             --text-muted: #64748b;
             --accent-blue: #38bdf8;
+            --accent-gold: #fbbf24;
             --danger: #f87171;
             --success: #34d399;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; font-size: 13px; overflow: hidden; }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            font-size: 13px;
-        }
+        header { padding: 1rem 2rem; border-bottom: 1px solid var(--border-color); background: rgba(10, 15, 24, 0.9); display: flex; justify-content: space-between; align-items: center; }
+        h1 { font-family: 'Roboto Mono', monospace; font-weight: 700; font-size: 14px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; }
 
-        header {
-            padding: 1rem 2rem;
-            border-bottom: 1px solid var(--border-color);
-            background: rgba(10, 15, 24, 0.9);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .header-controls { display: flex; align-items: center; gap: 1rem; font-family: 'Roboto Mono', monospace; font-size: 11px; }
+        .timer-text { color: var(--text-muted); }
 
-        h1 {
-            font-family: 'Roboto Mono', monospace;
-            font-weight: 700;
-            font-size: 14px;
-            letter-spacing: 2px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
+        .container { display: grid; grid-template-columns: 1fr 400px; gap: 1rem; padding: 1rem; flex: 1; overflow: hidden; }
+        .panel { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem; display: flex; flex-direction: column; overflow: hidden; }
 
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 400px;
-            gap: 1rem;
-            padding: 1rem;
-            flex: 1;
-        }
+        .panel-header { font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;}
 
-        .panel {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
+        /* Tabs */
+        .tabs { display: flex; gap: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .tab { font-family: 'Roboto Mono', monospace; font-size: 12px; color: var(--text-muted); cursor: pointer; text-transform: uppercase; }
+        .tab.active { color: var(--accent-blue); font-weight: 700; border-bottom: 2px solid var(--accent-blue); padding-bottom: 0.5rem; margin-bottom: -0.6rem; }
+        
+        .sub-filters { display: none; gap: 10px; margin-bottom: 10px; }
+        .sub-filters.active { display: flex; }
 
-        .panel-header {
-            font-family: 'Roboto Mono', monospace;
-            font-size: 11px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.5rem;
-            margin-bottom: 0.5rem;
-            display: flex;
-            justify-content: space-between;
-        }
+        /* Thesis List */
+        .thesis-list { overflow-y: auto; flex: 1; display: none; }
+        .thesis-list.active { display: block; }
 
-        .thesis-card {
-            border: 1px solid var(--border-color);
-            padding: 0.75rem;
-            background: rgba(0, 0, 0, 0.3);
-            margin-bottom: 0.5rem;
-            cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
-        }
+        /* Compact Card */
+        .thesis-card { border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; background: rgba(0, 0, 0, 0.3); margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s; }
+        .thesis-card:hover { border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.05); }
+        .thesis-card.active { border-color: var(--accent-blue); background: rgba(56, 189, 248, 0.1); }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: center; font-family: 'Roboto Mono', monospace; margin-bottom: 4px; }
+        .card-title { color: var(--accent-blue); font-size: 12px; font-weight: bold; }
+        .card-metrics { display: flex; gap: 8px; font-size: 10px; align-items: center; }
+        .metric { border: 1px solid var(--border-color); padding: 2px 4px; color: var(--text-muted); }
+        .metric.alpha { color: var(--accent-gold); border-color: rgba(251, 191, 36, 0.3); }
+        .metric.pnl { font-weight: bold; }
+        .metric.pnl.green { color: var(--success); }
+        .metric.pnl.red { color: var(--danger); }
+        .icon { font-size: 12px; }
 
-        .thesis-card:hover {
-            border-color: rgba(56, 189, 248, 0.5);
-            background: rgba(56, 189, 248, 0.05);
-        }
+        /* Expanded Area */
+        .card-body { display: none; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px; font-size: 12px; line-height: 1.4; color: var(--text-main); }
+        .thesis-card.active .card-body { display: block; }
 
-        .thesis-card.active {
-            border-color: var(--accent-blue);
-            background: rgba(56, 189, 248, 0.1);
-        }
+        .action-row { display: flex; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color); }
 
-        .thesis-title {
-            font-family: 'Roboto Mono', monospace;
-            font-size: 13px;
-            color: var(--accent-blue);
-            margin-bottom: 0.25rem;
-        }
+        /* CIO Override */
+        .cio-input { width: 100%; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem; font-family: 'Roboto Mono', monospace; font-size: 12px; resize: vertical; min-height: 150px; }
+        .cio-input:focus { outline: none; border-color: var(--accent-blue); }
 
-        .thesis-desc {
-            color: var(--text-main);
-            line-height: 1.4;
-            margin-bottom: 0.5rem;
-        }
+        .btn { background: transparent; color: var(--accent-blue); border: 1px solid var(--accent-blue); padding: 0.4rem 0.8rem; font-family: 'Roboto Mono', monospace; font-size: 10px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; }
+        .btn:hover { background: rgba(56, 189, 248, 0.1); }
+        .btn.scrape { color: var(--danger); border-color: var(--danger); }
+        .btn.scrape:hover { background: rgba(248, 113, 113, 0.1); }
+        .btn.star { color: var(--accent-gold); border-color: var(--accent-gold); }
+        .btn.star:hover { background: rgba(251, 191, 36, 0.1); }
 
-        .expansion-area {
-            display: none;
-            margin-top: 1rem;
-            border-top: 1px dashed var(--border-color);
-            padding-top: 1rem;
-        }
-
-        .thesis-card.active .expansion-area {
-            display: block;
-        }
-
-        .mermaid-container {
-            background: rgba(0,0,0,0.5);
-            padding: 10px;
-            border: 1px solid #1e293b;
-            margin-top: 10px;
-            text-align: center;
-        }
-
-        .tag-container {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-
-        .tag {
-            font-family: 'Roboto Mono', monospace;
-            font-size: 10px;
-            padding: 2px 6px;
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-        }
-
-        .tag.aligned {
-            color: var(--success);
-            border-color: rgba(52, 211, 153, 0.3);
-            background: rgba(52, 211, 153, 0.05);
-        }
-
-        .tag.reject {
-            color: var(--danger);
-            border-color: rgba(248, 113, 113, 0.3);
-            background: rgba(248, 113, 113, 0.05);
-        }
-
-        .cio-input {
-            width: 100%;
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 0.5rem;
-            font-family: 'Roboto Mono', monospace;
-            font-size: 12px;
-            resize: vertical;
-            min-height: 150px;
-        }
-
-        .cio-input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
-
-        .btn {
-            background: transparent;
-            color: var(--accent-blue);
-            border: 1px solid var(--accent-blue);
-            padding: 0.5rem 1rem;
-            font-family: 'Roboto Mono', monospace;
-            font-size: 11px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            background: rgba(56, 189, 248, 0.1);
-        }
-
-        .status-dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            background-color: var(--success);
-            border-radius: 50%;
-            margin-right: 5px;
-            box-shadow: 0 0 5px var(--success);
-        }
+        .mermaid-container { background: rgba(0,0,0,0.5); padding: 10px; border: 1px solid #1e293b; margin-top: 10px; text-align: center; }
+        .tag { font-family: 'Roboto Mono', monospace; font-size: 9px; padding: 2px 4px; border: 1px solid var(--border-color); color: var(--text-muted); margin-right: 4px; }
     </style>
 </head>
 <body>
     <header>
         <h1><span style="color:var(--text-main)">GOD'S EYE</span> // COMMAND CENTER</h1>
-        <div style="font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--text-muted);">
-            <span class="status-dot"></span> UPLINK SECURE
+        <div class="header-controls">
+            <span class="timer-text" id="timer">LAST SCRAPE: CHECKING...</span>
+            <button class="btn scrape" onclick="triggerScrape()">[INITIATE SCRAPE]</button>
         </div>
     </header>
 
     <div class="container">
-        <!-- Live Feed Panel -->
-        <div class="panel" style="overflow-y: auto; max-height: calc(100vh - 100px);">
-            <div class="panel-header">
-                <span>Active Intelligence / Theses</span>
-                <span id="last-updated">--:--:--</span>
+        <!-- Left Panel: Lists -->
+        <div class="panel">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('raw')">RAW INTERCEPTS</div>
+                <div class="tab" onclick="switchTab('watchlist')">WATCHLIST</div>
             </div>
-            <div id="theses-container">
-                <div style="color: var(--text-muted); font-family: 'Roboto Mono', monospace; font-size: 11px;">Awaiting signal intercept...</div>
+            
+            <div class="sub-filters" id="watchlist-filters">
+                <button class="btn active" id="btn-show-all" onclick="setWatchlistFilter('all')">ALL TRACKED</button>
+                <button class="btn" id="btn-show-starred" onclick="setWatchlistFilter('starred')">OPEN POSITIONS [*]</button>
             </div>
+
+            <div id="list-raw" class="thesis-list active"></div>
+            <div id="list-watchlist" class="thesis-list"></div>
         </div>
 
-        <!-- Right Sidebar -->
+        <!-- Right Panel: CIO Override -->
         <div class="panel">
             <div class="panel-header">
                 <span id="cio-header">CIO OVERRIDE (GLOBAL)</span>
             </div>
             <p style="color: var(--text-muted); font-size: 11px; margin-bottom: 0.5rem;">
-                Click a thesis card to target it, or inject feedback globally into the RAG matrix.
+                Inject feedback to alter assumptions or pivot instrument targets (e.g., "$SMH instead of $SOXX").
             </p>
             <textarea id="cio-text" class="cio-input" placeholder="> INPUT OVERRIDE COMMAND..."></textarea>
             <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
@@ -241,25 +125,83 @@
     <script>
         mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
+        let currentTab = 'raw';
+        let watchlistFilter = 'all'; // 'all' or 'starred'
         let selectedThesisId = null;
-        let knownThesesIds = new Set();
+        let lastScrapeTs = 0;
+        let thesesData = [];
 
-        function formatTags(desc) {
-            const regex = /\[(.*?)\]/g;
-            return desc.replace(regex, (match, tagText) => {
-                let className = 'tag';
-                if (tagText.includes('ALIGNED')) className += ' aligned';
-                else if (tagText.includes('REJECT')) className += ' reject';
-                return `<span class="${className}">[${tagText}]</span>`;
-            });
+        function switchTab(tabName) {
+            currentTab = tabName;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.thesis-list').forEach(l => l.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`list-${tabName}`).classList.add('active');
+            
+            document.getElementById('watchlist-filters').classList.toggle('active', tabName === 'watchlist');
+            renderLists();
+        }
+
+        function setWatchlistFilter(filter) {
+            watchlistFilter = filter;
+            document.getElementById('btn-show-all').style.borderColor = filter === 'all' ? 'var(--accent-blue)' : 'var(--border-color)';
+            document.getElementById('btn-show-starred').style.borderColor = filter === 'starred' ? 'var(--accent-blue)' : 'var(--border-color)';
+            renderLists();
+        }
+
+        async function triggerScrape() {
+            const btn = document.querySelector('.btn.scrape');
+            btn.innerText = '[SCRAPING...]';
+            await fetch('/api/trigger_scrape', { method: 'POST' });
+            setTimeout(() => { btn.innerText = '[INITIATE SCRAPE]'; updateTimer(); fetchTheses(); }, 5000);
+        }
+
+        async function updateTimer() {
+            try {
+                const res = await fetch('/api/last_scrape');
+                const data = await res.json();
+                lastScrapeTs = data.last_scrape_ts;
+            } catch(e) {}
+        }
+
+        setInterval(() => {
+            if(lastScrapeTs === 0) return;
+            const diffSeconds = Math.floor(Date.now() / 1000) - lastScrapeTs;
+            const h = Math.floor(diffSeconds / 3600);
+            const m = Math.floor((diffSeconds % 3600) / 60);
+            document.getElementById('timer').innerText = `LAST SCRAPE: ${h}H ${m}M AGO`;
+        }, 60000);
+
+        async function actionTrack(id) {
+            await fetch('/api/track', { method: 'POST', body: JSON.stringify({ thesis_id: id, is_tracked: 1 }) });
+            fetchTheses();
+        }
+
+        async function actionStar(id) {
+            await fetch('/api/star', { method: 'POST', body: JSON.stringify({ thesis_id: id, is_starred: 1 }) });
+            fetchTheses();
+        }
+
+        function toggleCard(id, element) {
+            const isActive = element.classList.contains('active');
+            document.querySelectorAll('.thesis-card').forEach(c => c.classList.remove('active'));
+            
+            if(isActive) {
+                selectedThesisId = null;
+                document.getElementById('cio-header').innerText = `CIO OVERRIDE (GLOBAL)`;
+            } else {
+                element.classList.add('active');
+                selectedThesisId = id;
+                document.getElementById('cio-header').innerText = `CIO OVERRIDE // TARGET: THESIS #${id}`;
+                fetchGraphs(id, element);
+            }
         }
 
         async function fetchGraphs(thesisId, cardElement) {
-            const expArea = cardElement.querySelector('.expansion-area');
-            if(expArea.innerHTML !== '') return; // Already loaded
+            const bodyArea = cardElement.querySelector('.card-body');
+            if(bodyArea.querySelector('.mermaid-container')) return; // Already loaded
 
-            expArea.innerHTML = `<div style="text-align:center; color:var(--accent-blue); font-family:'Roboto Mono', monospace; font-size:11px;">DECRYPTING NODES...</div>`;
-            
             try {
                 const aRes = await fetch(`/api/assumptions?thesis_id=${thesisId}`);
                 const assumptions = await aRes.json();
@@ -269,14 +211,20 @@
 
                 let mermaidGraph = `graph TD\n`;
                 mermaidGraph += `classDef thesis fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff;\n`;
-                mermaidGraph += `classDef assumption fill:#1e293b,stroke:#cbd5e1,color:#fff;\n`;
+                mermaidGraph += `classDef neutral fill:#1e293b,stroke:#cbd5e1,color:#fff;\n`;
+                mermaidGraph += `classDef strengthened fill:#064e3b,stroke:#34d399,color:#fff;\n`; // Green
+                mermaidGraph += `classDef weakened fill:#7f1d1d,stroke:#f87171,color:#fff;\n`; // Red
                 mermaidGraph += `classDef signal fill:#3f2a14,stroke:#f59e0b,color:#fff;\n`;
                 
                 mermaidGraph += `T${thesisId}["THESIS #${thesisId}"]:::thesis\n`;
                 
                 assumptions.forEach(a => {
                     let text = a.description.replace(/"/g, "'");
-                    mermaidGraph += `A${a.id}["[ASSUMPTION] ${text}"]:::assumption\n`;
+                    let statusClass = "neutral";
+                    if(a.status === 'STRENGTHENED') statusClass = "strengthened";
+                    if(a.status === 'WEAKENED') statusClass = "weakened";
+                    
+                    mermaidGraph += `A${a.id}["[${a.status}] ${text}"]:::${statusClass}\n`;
                     mermaidGraph += `A${a.id} --> T${thesisId}\n`;
                 });
 
@@ -285,56 +233,107 @@
                     mermaidGraph += `S${s.id}["[SIGNAL: ${s.source}] ${text}"]:::signal\n`;
                     mermaidGraph += `S${s.id} -.-> T${thesisId}\n`;
                 });
-                
-                if(assumptions.length === 0 && signals.length === 0) {
-                    expArea.innerHTML = `<div style="font-size:10px; color:var(--text-muted); font-family:'Roboto Mono', monospace;">NO CONNECTED NODES FOUND</div>`;
-                    return;
-                }
 
-                expArea.innerHTML = `
-                    <div style="font-size:11px; color:var(--accent-blue); margin-bottom:5px; font-family:'Roboto Mono', monospace;">[INTEL GRAPH & ASSUMPTION MATRIX]</div>
+                const container = document.createElement('div');
+                container.innerHTML = `
                     <div class="mermaid-container">
                         <div class="mermaid" id="mer-${thesisId}">${mermaidGraph}</div>
                     </div>
                 `;
+                bodyArea.appendChild(container);
                 
-                // Render mermaid inside the block
                 setTimeout(() => {
                     mermaid.init(undefined, document.getElementById(`mer-${thesisId}`));
                 }, 100);
 
             } catch(e) {
-                expArea.innerHTML = `<div style="color:var(--danger); font-family:'Roboto Mono', monospace;">DECRYPTION FAILED</div>`;
+                console.error(e);
             }
         }
 
-        window.toggleThesis = function(id, element) {
-            document.querySelectorAll('.thesis-card').forEach(c => {
-                if(c !== element) c.classList.remove('active');
-            });
-            
-            if(element.classList.contains('active')) {
-                element.classList.remove('active');
-                selectedThesisId = null;
-                document.getElementById('cio-header').innerText = `CIO OVERRIDE (GLOBAL)`;
-            } else {
-                element.classList.add('active');
-                selectedThesisId = id;
-                document.getElementById('cio-header').innerText = `CIO OVERRIDE // TARGET: THESIS #${id}`;
-                fetchGraphs(id, element);
+        function createCardHTML(t) {
+            let pnlHtml = '';
+            if (t.is_starred && t.pnl_percentage !== null && t.pnl_percentage !== undefined) {
+                let colorClass = t.pnl_percentage >= 0 ? 'green' : 'red';
+                let sign = t.pnl_percentage >= 0 ? '+' : '';
+                pnlHtml = `<span class="metric pnl ${colorClass}">${sign}${t.pnl_percentage.toFixed(2)}%</span>`;
             }
-        };
+
+            let icons = [];
+            if (t.is_tracked) icons.push('👁️');
+            if (t.is_starred) icons.push('⭐');
+
+            let descPreview = t.description.split('\n')[0];
+            
+            return `
+                <div class="thesis-card" id="card-${t.id}" onclick="toggleCard(${t.id}, this)">
+                    <div class="card-header">
+                        <div class="card-title">T-${t.id} ${icons.join('')}</div>
+                        <div class="card-metrics">
+                            ${t.target_instrument && t.target_instrument !== 'UNKNOWN' ? `<span class="metric">${t.target_instrument} [${t.position_type}]</span>` : ''}
+                            <span class="metric alpha">ALPHA: ${t.alpha_score || 0}</span>
+                            ${pnlHtml}
+                        </div>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${descPreview}
+                    </div>
+                    
+                    <div class="card-body">
+                        <div style="margin-bottom: 10px;">${t.description.replace(/\n/g, '<br>')}</div>
+                        
+                        <div class="action-row">
+                            ${!t.is_tracked ? `<button class="btn" onclick="event.stopPropagation(); actionTrack(${t.id})">[O] TRACK THESIS</button>` : ''}
+                            ${(t.is_tracked && !t.is_starred && t.target_instrument && t.target_instrument !== 'UNKNOWN') ? `<button class="btn star" onclick="event.stopPropagation(); actionStar(${t.id})">[*] LOCK TARGET (PAPER TRADE)</button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLists() {
+            const rawContainer = document.getElementById('list-raw');
+            const watchContainer = document.getElementById('list-watchlist');
+            
+            rawContainer.innerHTML = '';
+            watchContainer.innerHTML = '';
+
+            let rawCards = [];
+            let watchCards = [];
+
+            thesesData.forEach(t => {
+                if(t.is_tracked) {
+                    if (watchlistFilter === 'all' || (watchlistFilter === 'starred' && t.is_starred)) {
+                        watchCards.push(t);
+                    }
+                } else {
+                    rawCards.push(t);
+                }
+            });
+
+            // Sort watchlist by Alpha Score
+            watchCards.sort((a, b) => (b.alpha_score || 0) - (a.alpha_score || 0));
+
+            rawCards.forEach(t => rawContainer.innerHTML += createCardHTML(t));
+            watchCards.forEach(t => watchContainer.innerHTML += createCardHTML(t));
+        }
+
+        async function fetchTheses() {
+            try {
+                const response = await fetch('/api/theses');
+                thesesData = await response.json();
+                renderLists();
+            } catch (error) {
+                console.error("Failed to fetch theses", error);
+            }
+        }
 
         async function submitFeedback() {
             const input = document.getElementById('cio-text').value;
             if(!input) return;
             
-            const payload = {
-                thesis_id: selectedThesisId,
-                feedback_text: input
-            };
-            
-            const btn = document.querySelector('.btn');
+            const payload = { thesis_id: selectedThesisId, feedback_text: input };
+            const btn = document.querySelector('.panel .btn');
             btn.innerText = 'EXECUTING...';
             
             try {
@@ -347,56 +346,13 @@
                 btn.innerText = 'SUCCESS';
                 setTimeout(() => btn.innerText = 'EXECUTE', 2000);
             } catch(e) {
-                console.error(e);
                 btn.innerText = 'ERROR';
                 setTimeout(() => btn.innerText = 'EXECUTE', 2000);
             }
         }
 
-        async function fetchTheses() {
-            try {
-                const response = await fetch('/api/theses');
-                const theses = await response.json();
-                
-                const container = document.getElementById('theses-container');
-                if (theses.length === 0) {
-                    if (knownThesesIds.size === 0) {
-                        container.innerHTML = `<div style="color: var(--text-muted); font-family: 'Roboto Mono', monospace; font-size: 11px;">Awaiting signal intercept...</div>`;
-                    }
-                    return;
-                }
-
-                if (knownThesesIds.size === 0) container.innerHTML = ''; // clear initial
-
-                theses.forEach(t => {
-                    if(!knownThesesIds.has(t.id)) {
-                        knownThesesIds.add(t.id);
-                        let cleanDesc = t.description;
-                        let formattedHTML = formatTags(cleanDesc);
-
-                        const card = document.createElement('div');
-                        card.className = 'thesis-card';
-                        card.setAttribute('onclick', `toggleThesis(${t.id}, this)`);
-                        card.innerHTML = `
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <div class="thesis-title">THESIS #${t.id}</div>
-                                <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; color: ${t.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)'}">
-                                    [${t.status}]
-                                </div>
-                            </div>
-                            <div class="thesis-desc">${formattedHTML.replace(/\n/g, '<br>')}</div>
-                            <div class="expansion-area"></div>
-                        `;
-                        container.insertBefore(card, container.firstChild);
-                    }
-                });
-
-                document.getElementById('last-updated').innerText = new Date().toLocaleTimeString();
-            } catch (error) {
-                console.error("Failed to fetch theses", error);
-            }
-        }
-
+        updateTimer();
+        setInterval(updateTimer, 60000); // Check timestamp every minute
         setInterval(fetchTheses, 5000);
         fetchTheses();
     </script>

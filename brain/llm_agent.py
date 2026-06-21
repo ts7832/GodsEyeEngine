@@ -46,12 +46,12 @@ class GodsEyeAnalyst:
         api_key = os.environ.get("GEMINI_API_KEY")
         if api_key and genai:
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-pro')
+            self.model = genai.GenerativeModel('gemini-1.5-pro-latest')
         else:
             self.model = None
             print("WARNING: GEMINI_API_KEY not set or library not installed. Falling back to local simulation.")
 
-    def inject_to_db(self, thesis_desc, assumptions, tags, signal_id):
+    def inject_to_db(self, thesis_desc, assumptions, tags, target_instrument, position_type, alpha_score, signal_id):
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
@@ -62,18 +62,20 @@ class GodsEyeAnalyst:
             
             # Insert Thesis
             cursor.execute('''
-                INSERT INTO Theses (description, status, confidence, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (full_desc, 'ACTIVE', 0.8, current_time, current_time))
+                INSERT INTO Theses (description, status, confidence, created_at, updated_at, target_instrument, position_type, alpha_score)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (full_desc, 'ACTIVE', 0.8, current_time, current_time, target_instrument, position_type, alpha_score))
             
             thesis_id = cursor.lastrowid
             
             # Insert Assumptions
             for assumption in assumptions:
+                desc = assumption.get("description", assumption) if isinstance(assumption, dict) else str(assumption)
+                status = assumption.get("status", "NEUTRAL") if isinstance(assumption, dict) else "NEUTRAL"
                 cursor.execute('''
-                    INSERT INTO Assumptions (thesis_id, description, active)
-                    VALUES (?, ?, ?)
-                ''', (thesis_id, assumption, 1))
+                    INSERT INTO Assumptions (thesis_id, description, active, status)
+                    VALUES (?, ?, ?, ?)
+                ''', (thesis_id, desc, 1, status))
                 
             # Insert ThesisSignals mapping if signal_id provided
             if signal_id:
@@ -105,16 +107,24 @@ class GodsEyeAnalyst:
         
         CRITICAL INSTRUCTION: Do not blindly extrapolate the 5-year trends into the future. Use them only to understand the historical trajectory and structural decay/growth of the business.
         
+        ALPHA SCORE CALCULATION:
+        Assign an alpha_score (0-100) representing the Probability of Outsized Profit based on:
+        1. Contrarian Asymmetry (Hated but solvent)
+        2. Quality Discount (Wide moat, mispriced)
+        3. Reflexive Momentum (Violent narrative shift)
+        
         PREVIOUS CIO FEEDBACK TO ADHERE TO:
         {cio_feedback}
         
         You MUST output ONLY a valid JSON object. Do not include any markdown formatting or explanation. The JSON must match exactly this structure:
         {{
             "thesis": "A concise paragraph explaining your core investment thesis based on the asset data.",
+            "target_instrument": "AAPL",
+            "position_type": "LONG",
+            "alpha_score": 85,
             "assumptions": [
-                "Assumption 1 that must hold true for this thesis to survive",
-                "Assumption 2 that must hold true",
-                "Assumption 3"
+                {{"description": "Assumption 1 that must hold true", "status": "NEUTRAL"}},
+                {{"description": "Assumption 2", "status": "NEUTRAL"}}
             ],
             "tags": ["[BURRY-ALIGNED]", "[SOROS-REJECT]"]
         }}
@@ -129,7 +139,15 @@ class GodsEyeAnalyst:
                 data = json.loads(clean_json)
                 
                 print("\n[AI generated structured Thesis & Assumptions]")
-                self.inject_to_db(data['thesis'], data.get('assumptions', []), data.get('tags', []), signal_id)
+                self.inject_to_db(
+                    data['thesis'], 
+                    data.get('assumptions', []), 
+                    data.get('tags', []), 
+                    data.get('target_instrument', 'UNKNOWN'),
+                    data.get('position_type', 'UNKNOWN'),
+                    data.get('alpha_score', 50),
+                    signal_id
+                )
                 return data
             except Exception as e:
                 print(f"LLM API Error: {e}")
@@ -137,14 +155,25 @@ class GodsEyeAnalyst:
         # Simulated Fallback
         simulated_data = {
             "thesis": "The company shows strong free cash flow and a wide moat, but the stock is currently highly overvalued and crowded by momentum traders.",
+            "target_instrument": "UNKNOWN",
+            "position_type": "SHORT",
+            "alpha_score": 70,
             "assumptions": [
-                "Market sentiment continues to over-value growth",
-                "Macro environment remains favorable to Tech",
-                "No major regulatory crackdowns occur"
+                {"description": "Market sentiment continues to over-value growth", "status": "NEUTRAL"},
+                {"description": "Macro environment remains favorable to Tech", "status": "NEUTRAL"},
+                {"description": "No major regulatory crackdowns occur", "status": "NEUTRAL"}
             ],
             "tags": ["[BUFFETT-REJECT]", "[BURRY-REJECT]", "[SOROS-ALIGNED]"]
         }
-        self.inject_to_db(simulated_data['thesis'], simulated_data['assumptions'], simulated_data['tags'], signal_id)
+        self.inject_to_db(
+            simulated_data['thesis'], 
+            simulated_data['assumptions'], 
+            simulated_data['tags'], 
+            simulated_data['target_instrument'],
+            simulated_data['position_type'],
+            simulated_data['alpha_score'],
+            signal_id
+        )
         return simulated_data
 
 if __name__ == "__main__":
