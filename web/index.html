@@ -166,12 +166,15 @@
         }
 
         setInterval(() => {
-            if(lastScrapeTs === 0) return;
+            if(lastScrapeTs === 0) {
+                document.getElementById('timer').innerText = `LAST SCRAPE: NEVER`;
+                return;
+            }
             const diffSeconds = Math.floor(Date.now() / 1000) - lastScrapeTs;
             const h = Math.floor(diffSeconds / 3600);
             const m = Math.floor((diffSeconds % 3600) / 60);
             document.getElementById('timer').innerText = `LAST SCRAPE: ${h}H ${m}M AGO`;
-        }, 60000);
+        }, 1000);
 
         async function actionTrack(id) {
             await fetch('/api/track', { method: 'POST', body: JSON.stringify({ thesis_id: id, is_tracked: 1 }) });

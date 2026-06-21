@@ -149,7 +149,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         elif path == '/api/trigger_scrape':
             try:
-                subprocess.Popen(["./run_all.sh"], cwd=DIRECTORY)
+                project_root = os.path.abspath(os.path.join(DIRECTORY, '..'))
+                subprocess.Popen(["./run_all.sh"], cwd=project_root)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()

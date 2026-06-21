@@ -51,48 +51,81 @@ class GodsEyeAnalyst:
             self.model = None
             print("WARNING: GEMINI_API_KEY not set or library not installed. Falling back to local simulation.")
 
-    def inject_to_db(self, thesis_desc, assumptions, tags, target_instrument, position_type, alpha_score, signal_id):
+    def get_tracked_theses(self):
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, description, alpha_score, target_instrument FROM Theses WHERE is_tracked = 1")
+            rows = cursor.fetchall()
+            tracked = [dict(row) for row in rows]
+            conn.close()
+            return tracked
+        except Exception as e:
+            print(f"Error fetching tracked theses: {e}")
+            return []
+
+    def inject_to_db(self, thesis_desc, assumptions, tags, target_instrument, position_type, alpha_score, signal_id, impacted_thesis_id=None):
         try:
             conn = sqlite3.connect(DB_PATH)
             cursor = conn.cursor()
-            
-            # Combine desc and tags
-            full_desc = f"{thesis_desc}\n\nTags: {' '.join(tags)}"
             current_time = int(time.time())
             
-            # Insert Thesis
-            cursor.execute('''
-                INSERT INTO Theses (description, status, confidence, created_at, updated_at, target_instrument, position_type, alpha_score)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (full_desc, 'ACTIVE', 0.8, current_time, current_time, target_instrument, position_type, alpha_score))
-            
-            thesis_id = cursor.lastrowid
-            
-            # Insert Assumptions
-            for assumption in assumptions:
-                desc = assumption.get("description", assumption) if isinstance(assumption, dict) else str(assumption)
-                status = assumption.get("status", "NEUTRAL") if isinstance(assumption, dict) else "NEUTRAL"
+            if impacted_thesis_id:
+                # Update existing tracked thesis
                 cursor.execute('''
-                    INSERT INTO Assumptions (thesis_id, description, active, status)
-                    VALUES (?, ?, ?, ?)
-                ''', (thesis_id, desc, 1, status))
+                    UPDATE Theses 
+                    SET description = ?, updated_at = ?, alpha_score = ?
+                    WHERE id = ?
+                ''', (thesis_desc, current_time, alpha_score, impacted_thesis_id))
+                thesis_id = impacted_thesis_id
                 
-            # Insert ThesisSignals mapping if signal_id provided
-            if signal_id:
+                # Delete old assumptions and replace them with the updated ones
+                cursor.execute("DELETE FROM Assumptions WHERE thesis_id = ?", (thesis_id,))
+                for assumption in assumptions:
+                    desc = assumption.get("description", assumption) if isinstance(assumption, dict) else str(assumption)
+                    status = assumption.get("status", "NEUTRAL") if isinstance(assumption, dict) else "NEUTRAL"
+                    cursor.execute('''
+                        INSERT INTO Assumptions (thesis_id, description, active, status)
+                        VALUES (?, ?, ?, ?)
+                    ''', (thesis_id, desc, 1, status))
+                    
+                print(f">>> Successfully UPDATED Tracked Thesis #{thesis_id} with new data.")
+            else:
+                # Insert brand new Thesis
+                full_desc = f"{thesis_desc}\n\nTags: {' '.join(tags)}"
                 cursor.execute('''
-                    INSERT INTO ThesisSignals (thesis_id, signal_id)
-                    VALUES (?, ?)
-                ''', (thesis_id, signal_id))
+                    INSERT INTO Theses (description, status, confidence, created_at, updated_at, target_instrument, position_type, alpha_score)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (full_desc, 'ACTIVE', 0.8, current_time, current_time, target_instrument, position_type, alpha_score))
+                thesis_id = cursor.lastrowid
+                
+                for assumption in assumptions:
+                    desc = assumption.get("description", assumption) if isinstance(assumption, dict) else str(assumption)
+                    status = assumption.get("status", "NEUTRAL") if isinstance(assumption, dict) else "NEUTRAL"
+                    cursor.execute('''
+                        INSERT INTO Assumptions (thesis_id, description, active, status)
+                        VALUES (?, ?, ?, ?)
+                    ''', (thesis_id, desc, 1, status))
+                print(f">>> Successfully injected NEW Thesis #{thesis_id} into godseye.db")
+
+            # Always link the new signal
+            if signal_id:
+                cursor.execute("INSERT OR IGNORE INTO ThesisSignals (thesis_id, signal_id) VALUES (?, ?)", (thesis_id, signal_id))
                 
             conn.commit()
             conn.close()
-            print(f">>> Successfully injected Thesis #{thesis_id} and {len(assumptions)} Assumptions into godseye.db")
         except Exception as e:
             print(f"Database injection error: {e}")
 
     def evaluate_asset_signal(self, asset_data_json, signal_id=None):
         print(f"\n[LLM Request] Evaluating Asset Signal through the Council of Titans...")
         cio_feedback = self.rag.get_relevant_feedback()
+        tracked_theses = self.get_tracked_theses()
+        
+        tracked_context = "NO TRACKED THESES CURRENTLY EXIST."
+        if tracked_theses:
+            tracked_context = "CURRENTLY TRACKED THESES:\n" + json.dumps(tracked_theses, indent=2)
 
         prompt = f"""
         You are the Council of Titans module of the God's Eye Engine.
@@ -102,31 +135,37 @@ class GodsEyeAnalyst:
         {BUFFETT_FRAMEWORK}
         {SOROS_FRAMEWORK}
         
-        ASSET DATA (Includes 5-Year Scans & Solvency Metrics):
+        ASSET DATA:
         {asset_data_json}
         
-        CRITICAL INSTRUCTION: Do not blindly extrapolate the 5-year trends into the future. Use them only to understand the historical trajectory and structural decay/growth of the business.
+        CRITICAL INSTRUCTION: Do not blindly extrapolate 5-year trends into the future. 
         
-        ALPHA SCORE CALCULATION:
-        Assign an alpha_score (0-100) representing the Probability of Outsized Profit based on:
-        1. Contrarian Asymmetry (Hated but solvent)
-        2. Quality Discount (Wide moat, mispriced)
-        3. Reflexive Momentum (Violent narrative shift)
+        DEDUPLICATION & UPDATE LOGIC:
+        Review the USER'S TRACKED THESES below. Does this new asset data significantly impact any of them?
+        If YES: You must output the ID of the thesis you are updating as 'impacted_thesis_id'. Update the description, recalculate the alpha_score, and explicitly mark the existing assumptions as "STRENGTHENED" or "WEAKENED" by this new data.
+        If NO: Set 'impacted_thesis_id' to null, and generate a brand new thesis.
+        
+        {tracked_context}
         
         PREVIOUS CIO FEEDBACK TO ADHERE TO:
         {cio_feedback}
         
-        You MUST output ONLY a valid JSON object. Do not include any markdown formatting or explanation. The JSON must match exactly this structure:
+        ALPHA SCORE CALCULATION:
+        Assign an alpha_score (0-100) representing the Probability of Outsized Profit based on Contrarian Asymmetry, Quality Discount, and Reflexive Momentum.
+        
+        You MUST output ONLY a valid JSON object. Do not include markdown. The JSON must match exactly:
         {{
-            "thesis": "A concise paragraph explaining your core investment thesis based on the asset data.",
+            "impacted_thesis_id": null, // OR the integer ID of the tracked thesis you are updating
+            "thesis": "A concise paragraph explaining your core investment thesis...",
             "target_instrument": "AAPL",
             "position_type": "LONG",
             "alpha_score": 85,
             "assumptions": [
-                {{"description": "Assumption 1 that must hold true", "status": "NEUTRAL"}},
-                {{"description": "Assumption 2", "status": "NEUTRAL"}}
+                {{"description": "Assumption 1", "status": "STRENGTHENED"}},
+                {{"description": "Assumption 2", "status": "NEUTRAL"}},
+                {{"description": "Assumption 3", "status": "WEAKENED"}}
             ],
-            "tags": ["[BURRY-ALIGNED]", "[SOROS-REJECT]"]
+            "tags": ["[BURRY-ALIGNED]"]
         }}
         """
         
@@ -134,11 +173,9 @@ class GodsEyeAnalyst:
             try:
                 response = self.model.generate_content(prompt)
                 raw_text = response.text
-                # Clean up markdown if the LLM still returns it
                 clean_json = re.sub(r'```json\n|\n```|```', '', raw_text).strip()
                 data = json.loads(clean_json)
                 
-                print("\n[AI generated structured Thesis & Assumptions]")
                 self.inject_to_db(
                     data['thesis'], 
                     data.get('assumptions', []), 
@@ -146,7 +183,8 @@ class GodsEyeAnalyst:
                     data.get('target_instrument', 'UNKNOWN'),
                     data.get('position_type', 'UNKNOWN'),
                     data.get('alpha_score', 50),
-                    signal_id
+                    signal_id,
+                    data.get('impacted_thesis_id')
                 )
                 return data
             except Exception as e:
@@ -154,6 +192,7 @@ class GodsEyeAnalyst:
                 
         # Simulated Fallback
         simulated_data = {
+            "impacted_thesis_id": None,
             "thesis": "The company shows strong free cash flow and a wide moat, but the stock is currently highly overvalued and crowded by momentum traders.",
             "target_instrument": "UNKNOWN",
             "position_type": "SHORT",
@@ -172,7 +211,8 @@ class GodsEyeAnalyst:
             simulated_data['target_instrument'],
             simulated_data['position_type'],
             simulated_data['alpha_score'],
-            signal_id
+            signal_id,
+            simulated_data.get('impacted_thesis_id')
         )
         return simulated_data
 
