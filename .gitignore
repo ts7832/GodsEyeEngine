@@ -1,0 +1,5 @@
+core/build/
+__pycache__/
+*.pyc
+.libs/
+godseye.db

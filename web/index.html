@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>God's Eye Engine | Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>God's Eye // UNCLASSIFIED</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0f111a;
-            --panel-bg: rgba(255, 255, 255, 0.03);
-            --border-color: rgba(255, 255, 255, 0.08);
-            --accent-blue: #00f0ff;
-            --accent-purple: #8a2be2;
-            --text-main: #e2e8f0;
-            --text-muted: #94a3b8;
-            --danger: #ef4444;
+            --bg-dark: #0a0f18;
+            --panel-bg: rgba(255, 255, 255, 0.015);
+            --border-color: #1e293b;
+            --text-main: #cbd5e1;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+            --danger: #f87171;
+            --success: #34d399;
         }
 
         * {
@@ -28,97 +28,115 @@
             background-color: var(--bg-dark);
             color: var(--text-main);
             min-height: 100vh;
-            background-image: radial-gradient(circle at top right, rgba(138, 43, 226, 0.15), transparent 40%),
-                              radial-gradient(circle at bottom left, rgba(0, 240, 255, 0.1), transparent 40%);
             display: flex;
             flex-direction: column;
+            font-size: 13px;
         }
 
         header {
-            padding: 2rem;
+            padding: 1rem 2rem;
             border-bottom: 1px solid var(--border-color);
-            background: rgba(15, 17, 26, 0.6);
-            backdrop-filter: blur(12px);
+            background: rgba(10, 15, 24, 0.9);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         h1 {
-            font-weight: 800;
-            letter-spacing: -1px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-family: 'Roboto Mono', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
         }
 
         .container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            padding: 2rem;
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
+            grid-template-columns: 1fr 400px;
+            gap: 1rem;
+            padding: 1rem;
+            flex: 1;
         }
 
         .panel {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 1.5rem;
-            backdrop-filter: blur(10px);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .panel:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-
-        .panel-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--text-main);
+            padding: 1rem;
             display: flex;
-            align-items: center;
-            gap: 10px;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .panel-header {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
         }
 
         .thesis-card {
-            background: rgba(0, 0, 0, 0.4);
             border: 1px solid var(--border-color);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            margin-bottom: 0.5rem;
         }
 
-        .status-flagged {
-            color: var(--danger);
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .thesis-title {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            color: var(--accent-blue);
+            margin-bottom: 0.25rem;
+        }
+
+        .thesis-desc {
+            color: var(--text-main);
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+        }
+
+        .tag-container {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 10px;
             padding: 2px 6px;
-            border: 1px solid var(--danger);
-            border-radius: 4px;
-            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+        }
+
+        .tag.aligned {
+            color: var(--success);
+            border-color: rgba(52, 211, 153, 0.3);
+            background: rgba(52, 211, 153, 0.05);
+        }
+
+        .tag.reject {
+            color: var(--danger);
+            border-color: rgba(248, 113, 113, 0.3);
+            background: rgba(248, 113, 113, 0.05);
         }
 
         .cio-input {
             width: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: transparent;
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 1rem;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
+            padding: 0.5rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 12px;
             resize: vertical;
-            min-height: 100px;
-            margin-top: 1rem;
+            min-height: 150px;
         }
 
         .cio-input:focus {
@@ -127,69 +145,120 @@
         }
 
         .btn {
-            background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
+            background: transparent;
+            color: var(--accent-blue);
+            border: 1px solid var(--accent-blue);
+            padding: 0.5rem 1rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
             cursor: pointer;
-            margin-top: 1rem;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
         }
 
         .btn:hover {
-            opacity: 0.9;
+            background: rgba(56, 189, 248, 0.1);
         }
 
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: var(--success);
+            border-radius: 50%;
+            margin-right: 5px;
+            box-shadow: 0 0 5px var(--success);
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>God's Eye Engine</h1>
-        <div style="font-size: 0.9rem; color: var(--text-muted);">Status: <span style="color: var(--accent-blue);">Online</span></div>
+        <h1><span style="color:var(--text-main)">GOD'S EYE</span> // COMMAND CENTER</h1>
+        <div style="font-family: 'Roboto Mono', monospace; font-size: 11px; color: var(--text-muted);">
+            <span class="status-dot"></span> UPLINK SECURE
+        </div>
     </header>
 
     <div class="container">
-        <!-- Theses Panel -->
-        <div class="panel">
-            <div class="panel-title">Active Theses & Signals</div>
-            <div class="thesis-card">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <strong>Long US Equities</strong>
-                    <span class="status-flagged">FLAGGED - Review Required</span>
-                </div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
-                    Assumption Broken: "Federal Reserve will cut rates in Q4"<br>
-                    Signal: High Inflation Print (FRED CPI YoY > 3.0%)
-                </p>
-                <div style="font-size: 0.85rem; border-top: 1px solid var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">
-                    <span style="color: var(--accent-blue);">AI Counterfactual:</span><br>
-                    1. The market has already priced in the expected scenario.<br>
-                    2. Institutional positioning is overwhelmingly one-sided.
-                </div>
+        <!-- Live Feed Panel -->
+        <div class="panel" style="overflow-y: auto; max-height: calc(100vh - 100px);">
+            <div class="panel-header">
+                <span>Active Intelligence / Theses</span>
+                <span id="last-updated">--:--:--</span>
             </div>
-            
-            <div class="thesis-card">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <strong>Geopolitical Supply Chain Short</strong>
-                    <span style="color: #10b981; font-size: 0.8rem; border: 1px solid #10b981; padding: 2px 6px; border-radius: 4px;">ACTIVE</span>
-                </div>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">
-                    Tracking structural changes in manufacturing based on recent GitHub/Patent velocity metrics.
-                </p>
+            <div id="theses-container">
+                <div style="color: var(--text-muted); font-family: 'Roboto Mono', monospace; font-size: 11px;">Awaiting signal intercept...</div>
             </div>
         </div>
 
-        <!-- CIO Feedback Panel -->
+        <!-- Right Sidebar -->
         <div class="panel">
-            <div class="panel-title">CIO Feedback Override (Memory Layer)</div>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">
-                Provide direct feedback. This updates the agent's RAG memory to alter its future deductive logic and counterfactual generation.
+            <div class="panel-header">
+                <span>CIO Override (Memory Layer)</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 11px; margin-bottom: 0.5rem;">
+                Inject feedback into the RAG matrix to alter future agent evaluations.
             </p>
-            <textarea class="cio-input" placeholder="e.g. 'I don't agree with the AI's counterfactual on equities. It is missing the impact of fiscal dominance. Prioritize debt issuance metrics.'"></textarea>
-            <button class="btn">Inject Feedback</button>
+            <textarea class="cio-input" placeholder="> INPUT OVERRIDE COMMAND..."></textarea>
+            <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+                <button class="btn">Execute</button>
+            </div>
         </div>
     </div>
+
+    <script>
+        function formatTags(desc) {
+            // Find tags like [BURRY-ALIGNED] and color them
+            const regex = /\[(.*?)\]/g;
+            return desc.replace(regex, (match, tagText) => {
+                let className = 'tag';
+                if (tagText.includes('ALIGNED')) className += ' aligned';
+                else if (tagText.includes('REJECT')) className += ' reject';
+                return `<span class="${className}">[${tagText}]</span>`;
+            });
+        }
+
+        async function fetchTheses() {
+            try {
+                const response = await fetch('/api/theses');
+                const theses = await response.json();
+                
+                const container = document.getElementById('theses-container');
+                if (theses.length === 0) {
+                    container.innerHTML = `<div style="color: var(--text-muted); font-family: 'Roboto Mono', monospace; font-size: 11px;">No active theses found in database.</div>`;
+                    return;
+                }
+
+                container.innerHTML = '';
+                theses.forEach(t => {
+                    // We split the description logic to find Tags if they exist
+                    let cleanDesc = t.description;
+                    let formattedHTML = formatTags(cleanDesc);
+
+                    const card = document.createElement('div');
+                    card.className = 'thesis-card';
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <div class="thesis-title">THESIS #${t.id}</div>
+                            <div style="font-family: 'Roboto Mono', monospace; font-size: 10px; color: ${t.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)'}">
+                                [${t.status}]
+                            </div>
+                        </div>
+                        <div class="thesis-desc">${formattedHTML.replace(/\n/g, '<br>')}</div>
+                    `;
+                    container.appendChild(card);
+                });
+
+                document.getElementById('last-updated').innerText = new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error("Failed to fetch theses", error);
+            }
+        }
+
+        // Poll every 5 seconds
+        setInterval(fetchTheses, 5000);
+        // Initial fetch
+        fetchTheses();
+    </script>
 </body>
 </html>
